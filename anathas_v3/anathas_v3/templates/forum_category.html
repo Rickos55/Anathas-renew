@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} — Forum Anathas{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="breadcrumb"><a href="{{ url_for('forum') }}">Forum</a> › {{ category.name }}</div>
+    <h1 class="page-title">{{ category.name }}</h1>
+
+    {% if not category.is_official or session.role in ('admin','moderator') %}
+    <div class="dash-card" style="margin-bottom:1.5rem">
+        <h2 class="card-title">✍️ Nouveau sujet</h2>
+        <form method="POST" action="{{ url_for('new_topic', cat_id=category.id) }}" class="auth-form">
+            <div class="form-group">
+                <label>Titre</label>
+                <input type="text" name="title" required placeholder="Titre du sujet" maxlength="200">
+            </div>
+            <div class="form-group">
+                <label>Contenu</label>
+                <textarea name="content" required rows="4" placeholder="Votre message..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Publier</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="forum-topics">
+        {% for topic in topics %}
+        <a href="{{ url_for('forum_topic', topic_id=topic.id) }}" class="forum-topic-row">
+            <div class="topic-icons">
+                {% if topic.is_pinned %}<span title="Épinglé">📌</span>{% endif %}
+                {% if topic.is_locked %}<span title="Verrouillé">🔒</span>{% endif %}
+            </div>
+            <div class="topic-info">
+                <span class="topic-title">{{ topic.title }}</span>
+                <span class="topic-meta">Par {{ topic.author.username }} · {{ topic.posts|length }} réponse(s) · {{ topic.updated_at.strftime('%d/%m/%Y') }}</span>
+            </div>
+        </a>
+        {% else %}
+        <p class="empty-state">Aucun sujet pour l'instant.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

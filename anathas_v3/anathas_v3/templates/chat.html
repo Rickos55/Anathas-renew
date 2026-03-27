@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Shoutbox — Anathas{% endblock %}
+{% block content %}
+<h1 class="page-title">Shoutbox</h1>
+<div class="chat-layout">
+    <div class="chat-sidebar">
+        <p style="font-size:12px;font-weight:bold;color:var(--text-dim);margin-bottom:8px">CANAUX</p>
+        <button class="channel-btn active" data-channel="general" data-alliance-id="">💬 Général</button>
+        {% if alliance %}
+        <button class="channel-btn" data-channel="alliance" data-alliance-id="{{ alliance.id }}">🛡 {{ alliance.name }}</button>
+        {% else %}
+        <p style="font-size:12px;color:var(--text-dim);padding:8px 0">Rejoignez une alliance pour accéder à son chat.</p>
+        {% endif %}
+    </div>
+    <div class="chat-main">
+        <div class="section-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+            <div class="section-header"><span class="section-title" id="chat-channel-label">💬 Chat Général</span></div>
+            <div class="chat-messages" id="chat-messages" style="flex:1;border:none;border-radius:0">
+                <p style="color:var(--text-dim);font-size:13px">Chargement...</p>
+            </div>
+            <div style="padding:10px;border-top:1px solid var(--border)">
+                <div class="chat-input-row">
+                    <input type="text" id="chat-input" placeholder="Votre message..." maxlength="500" autocomplete="off">
+                    <button id="chat-send" class="btn btn-primary">Envoyer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let currentChannel='general',currentAllianceId=null,lastCount=0;
+async function loadMessages(){
+    let url=`/api/chat/messages?channel=${currentChannel}`;
+    if(currentAllianceId)url+=`&alliance_id=${currentAllianceId}`;
+    const res=await fetch(url);const msgs=await res.json();
+    if(msgs.length===lastCount)return;lastCount=msgs.length;
+    const c=document.getElementById('chat-messages');
+    const atBottom=c.scrollHeight-c.scrollTop<=c.clientHeight+50;
+    function roleTag(r){if(r==='admin')return'<span class="badge badge-admin">Admin</span>';if(r==='moderator')return'<span class="badge badge-moderator">Modo</span>';return'';}
+    c.innerHTML=msgs.map(m=>`<div class="chat-msg"><span class="chat-time">${m.created_at}</span><span class="chat-author role-${m.role}">${m.username}</span>${roleTag(m.role)}<span class="chat-text">${m.content.replace(/</g,'&lt;')}</span></div>`).join('');
+    if(atBottom)c.scrollTop=c.scrollHeight;
+}
+async function sendMessage(){
+    const input=document.getElementById('chat-input');
+    const content=input.value.trim();if(!content)return;
+    await fetch('/api/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content,channel:currentChannel,alliance_id:currentAllianceId})});
+    input.value='';lastCount=0;await loadMessages();
+}
+document.getElementById('chat-send').addEventListener('click',sendMessage);
+document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendMessage();});
+document.querySelectorAll('.channel-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+        document.querySelectorAll('.channel-btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');currentChannel=b.dataset.channel;currentAllianceId=b.dataset.allianceId||null;
+        document.getElementById('chat-channel-label').textContent=currentChannel==='alliance'?'🛡 Chat Alliance':'💬 Chat Général';
+        lastCount=0;loadMessages();
+    });
+});
+loadMessages();setInterval(loadMessages,5000);
+</script>
+{% endblock %}

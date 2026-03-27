@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Territoire — {{ country.name }}{% endblock %}
+{% block content %}
+<h1 class="page-title">Territoire et Environnement</h1>
+
+<div class="two-col">
+    <!-- Régions -->
+    <div>
+        <div class="section-card">
+            <div class="section-header"><span class="section-title">🗺 Régions</span></div>
+            <div class="section-body">
+                <p style="font-weight:bold;margin-bottom:14px">Taille du territoire : {{ "{:,}".format(country.territory_total()).replace(",","'") }} km²</p>
+
+                <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
+                    <div style="font-size:32px">🏜️</div>
+                    <div>
+                        <strong>Déserts</strong><br>
+                        Surface totale : {{ "{:,}".format(country.desert * 1000).replace(",","'") }} km²
+                        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                            <form method="POST" action="{{ url_for('territory_action') }}" style="display:inline">
+                                <input type="hidden" name="action" value="irrigate">
+                                <button class="btn btn-sm btn-cyan">🌊 Irriguer une région (300 §)</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
+                    <div style="font-size:32px">🌳</div>
+                    <div>
+                        <strong>Forêts</strong><br>
+                        Surface totale : {{ "{:,}".format(country.forests).replace(",","'") }} km²
+                        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                            <form method="POST" action="{{ url_for('territory_action') }}" style="display:inline">
+                                <input type="hidden" name="action" value="deforest">
+                                <button class="btn btn-sm btn-cyan">🪓 Défricher (100 §)</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('territory_action') }}" style="display:inline">
+                                <input type="hidden" name="action" value="reforest">
+                                <button class="btn btn-sm btn-cyan">🌲 Reboiser désert (200 §)</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
+                    <div style="font-size:32px">🏙️</div>
+                    <div>
+                        <strong>Zones habitables</strong><br>
+                        Surface totale : {{ "{:,}".format(country.plains * 1000 + country.urban * 2000).replace(",","'") }} km²
+                        <div style="margin-top:6px">
+                            <form method="POST" action="{{ url_for('territory_action') }}" style="display:inline">
+                                <input type="hidden" name="action" value="urbanize">
+                                <button class="btn btn-sm btn-cyan">🏗 Urbaniser plaine (500 §)</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pollution & CC -->
+    <div>
+        <div class="section-card">
+            <div class="section-header"><span class="section-title">🌡 Pollution</span></div>
+            <div class="section-body">
+                <div class="stat-row">
+                    <span class="stat-label">Taux de pollution actuel</span>
+                    <span class="stat-value {% if country.pollution <= 30 %}good{% elif country.pollution <= 60 %}gold{% else %}bad{% endif %}">{{ "%.2f"|format(country.pollution) }}</span>
+                </div>
+                <div class="progress-bar" style="margin:8px 0">
+                    <div class="progress-fill {% if country.pollution <= 30 %}progress-green{% elif country.pollution <= 60 %}progress-gold{% else %}progress-red{% endif %}" style="width:{{ [country.pollution, 100]|min }}%"></div>
+                </div>
+                <p style="font-size:12px;color:var(--text-dim);margin:6px 0">Les forêts réduisent la pollution de <strong>{{ (country.forests * 0.1)|int }}%</strong> par cycle.</p>
+                <hr style="border:none;border-top:1px solid #f0f0f0;margin:10px 0">
+
+                <div class="section-title" style="font-size:14px;margin-bottom:8px">♻️ Crédits Carbone</div>
+                <div class="stat-row">
+                    <span class="stat-label">CC disponibles</span>
+                    <span class="stat-value teal">{{ country.carbon_credits }}</span>
+                </div>
+                <p style="font-size:12px;color:var(--text-dim);margin-top:8px">Les CC peuvent être échangés sur le <a href="{{ url_for('market') }}">marché</a> ou utilisés pour réduire la pollution.</p>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-top:14px">
+            <div class="section-header"><span class="section-title">📊 Résumé du territoire</span></div>
+            <div class="section-body">
+                <div class="stat-row"><span class="stat-label">Plaines</span><span class="stat-value">{{ country.plains }} régions</span></div>
+                <div class="stat-row"><span class="stat-label">Zones urbaines</span><span class="stat-value">{{ country.urban }} régions</span></div>
+                <div class="stat-row"><span class="stat-label">Déserts</span><span class="stat-value">{{ country.desert }} régions</span></div>
+                <div class="stat-row"><span class="stat-label">Forêts</span><span class="stat-value">{{ country.forests }} km²</span></div>
+                <div class="stat-row"><span class="stat-label">Total</span><span class="stat-value teal">{{ country.territory_total() }} régions</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

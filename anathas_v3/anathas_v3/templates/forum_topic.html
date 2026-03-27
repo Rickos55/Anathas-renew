@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }} — Forum{% endblock %}
+{% block content %}
+<div class="page-container">
+    <div class="breadcrumb">
+        <a href="{{ url_for('forum') }}">Forum</a> ›
+        <a href="{{ url_for('forum_category', cat_id=topic.category_id) }}">{{ topic.category.name }}</a> ›
+        {{ topic.title }}
+    </div>
+    <div class="topic-header">
+        <h1 class="page-title">{{ topic.title }}</h1>
+        {% if session.role in ('admin','moderator') %}
+        <div class="topic-mod-actions">
+            <form method="POST" action="{{ url_for('toggle_pin', topic_id=topic.id) }}" style="display:inline">
+                <button class="btn btn-sm btn-secondary">{% if topic.is_pinned %}Désépingler{% else %}📌 Épingler{% endif %}</button>
+            </form>
+            <form method="POST" action="{{ url_for('toggle_lock', topic_id=topic.id) }}" style="display:inline">
+                <button class="btn btn-sm btn-secondary">{% if topic.is_locked %}🔓 Déverrouiller{% else %}🔒 Verrouiller{% endif %}</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="forum-posts">
+        {% for post in posts %}
+        <div class="forum-post">
+            <div class="post-author">
+                <strong class="role-{{ post.author.role }}">{{ post.author.username }}</strong>
+                <span class="role-badge role-{{ post.author.role }}">{{ post.author.role }}</span>
+                <small>{{ post.author.country.name if post.author.country else '—' }}</small>
+            </div>
+            <div class="post-content">{{ post.content }}</div>
+            <div class="post-footer">
+                <small>{{ post.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                {% if session.role in ('admin','moderator') %}
+                <form method="POST" action="{{ url_for('delete_post', post_id=post.id) }}" style="display:inline">
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ce message ?')">Supprimer</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not topic.is_locked or session.role in ('admin','moderator') %}
+    <div class="dash-card" style="margin-top:1.5rem">
+        <h2 class="card-title">✍️ Répondre</h2>
+        <form method="POST" action="{{ url_for('forum_topic', topic_id=topic.id) }}" class="auth-form">
+            <div class="form-group">
+                <textarea name="content" required rows="4" placeholder="Votre réponse..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Publier</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="alert alert-error" style="margin-top:1rem">🔒 Ce sujet est verrouillé.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Forum — Anathas{% endblock %}
+{% block content %}
+<div class="page-container">
+    <h1 class="page-title">📜 Forum</h1>
+    <div class="forum-list">
+        {% for cat in categories %}
+        <a href="{{ url_for('forum_category', cat_id=cat.id) }}" class="forum-category-card">
+            <div class="forum-cat-icon">{% if cat.is_official %}📢{% else %}💬{% endif %}</div>
+            <div class="forum-cat-info">
+                <h3>{{ cat.name }}{% if cat.is_official %} <span class="official-badge">Officiel</span>{% endif %}</h3>
+                <p>{{ cat.description }}</p>
+                <small>{{ cat.topics|length }} sujet(s)</small>
+            </div>
+        </a>
+        {% else %}
+        <p class="empty-state">Aucune catégorie de forum. Un administrateur doit en créer.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

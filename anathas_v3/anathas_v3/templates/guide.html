@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Guide — Anapédia{% endblock %}
+{% block content %}
+<h1 class="page-title">📖 Anapédia — Guide du joueur</h1>
+
+<div class="sidebar-layout">
+    <!-- Sommaire -->
+    <div>
+        <div class="guide-toc">
+            <h3>Sommaire</h3>
+            <a href="#debut">🚀 Débuter dans Anathas</a>
+            <a href="#economie">💰 Économie</a>
+            <a href="#population">👥 Population</a>
+            <a href="#territoire">🗺 Territoire</a>
+            <a href="#militaire">⚔ Militaire & Guerres</a>
+            <a href="#technologie">🔬 Technologie</a>
+            <a href="#diplomatie">🤝 Diplomatie</a>
+            <a href="#espionnage">🕵 Espionnage</a>
+            <a href="#marche">🏪 Marchés</a>
+            <a href="#alliances">🛡 Alliances</a>
+            <a href="#environnement">🌱 Environnement</a>
+            <a href="#classement">🏆 Classement</a>
+        </div>
+    </div>
+
+    <!-- Contenu -->
+    <div>
+        <div class="section-card">
+            <div class="section-body">
+
+                <div class="guide-section" id="debut">
+                    <h2>🚀 Débuter dans Anathas</h2>
+                    <p>Bienvenue dans Anathas ! Vous êtes à la tête d'une nouvelle nation. Votre objectif est de la faire prospérer face aux autres joueurs.</p>
+                    <p>Le jeu avance par <strong>tours</strong>, déclenchés deux fois par jour (10h et 20h). À chaque tour, vos revenus sont calculés, votre population évolue et vos recherches progressent.</p>
+                    <div class="guide-tip">💡 <strong>Conseil débutant :</strong> commencez par équilibrer votre budget d'état à 20% par secteur, puis adaptez selon votre stratégie.</div>
+                    <h3>Vos premières actions</h3>
+                    <ul>
+                        <li>Répartissez votre budget d'état (section Économie)</li>
+                        <li>Allouez vos points de recherche dans les domaines qui vous intéressent</li>
+                        <li>Rejoignez une alliance pour vous protéger en début de partie</li>
+                        <li>Évitez les guerres au début : concentrez-vous sur votre économie</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section" id="economie">
+                    <h2>💰 Économie</h2>
+                    <p>Votre économie repose sur trois piliers : <strong>Agriculture</strong>, <strong>Industrie</strong> et <strong>Commerce</strong>.</p>
+                    <h3>Revenus par tour</h3>
+                    <ul>
+                        <li><strong>Agriculture :</strong> niveau × 50 × bonus tech × part du budget</li>
+                        <li><strong>Industrie :</strong> niveau × 80 × bonus tech × part du budget</li>
+                        <li><strong>Commerce :</strong> niveau × 60 × part du budget — <em>annulé si blocus</em></li>
+                        <li><strong>Taxe population :</strong> population × 0.001</li>
+                    </ul>
+                    <div class="guide-tip">⚠️ Un blocus économique ennemi supprime totalement vos revenus commerciaux !</div>
+                    <h3>Budget d'état</h3>
+                    <p>Vous répartissez 100% de votre budget entre 5 secteurs : Agriculture, Industrie, Santé, Militaire et Recherche. La répartition influence directement vos revenus et indicateurs.</p>
+                </div>
+
+                <div class="guide-section" id="population">
+                    <h2>👥 Population</h2>
+                    <p>Votre population croît si la <strong>satisfaction</strong> est supérieure à 50%, et décroît en dessous.</p>
+                    <h3>Facteurs de satisfaction</h3>
+                    <ul>
+                        <li><strong>Nourriture :</strong> dépend de la production agricole vs population</li>
+                        <li><strong>Santé :</strong> dépend du budget santé et du niveau technologique médical</li>
+                        <li><strong>Emploi :</strong> dépend de vos niveaux industrie et commerce</li>
+                    </ul>
+                    <p>La pollution réduit la croissance démographique si elle dépasse 60.</p>
+                </div>
+
+                <div class="guide-section" id="territoire">
+                    <h2>🗺 Territoire</h2>
+                    <p>Votre territoire est composé de <strong>régions</strong> de différents types : Plaines, Zones urbaines et Déserts.</p>
+                    <h3>Terraformage</h3>
+                    <ul>
+                        <li><strong>Irriguer un désert (300 §) :</strong> convertit un désert en plaine</li>
+                        <li><strong>Urbaniser une plaine (500 §) :</strong> convertit une plaine en zone urbaine</li>
+                        <li><strong>Reboiser un désert (200 §) :</strong> plante des forêts, réduit la pollution</li>
+                        <li><strong>Défricher (100 §) :</strong> détruit des forêts pour gagner une plaine</li>
+                    </ul>
+                    <h3>Extension du territoire</h3>
+                    <p>Vous pouvez gagner du territoire en <strong>gagnant des guerres</strong> ou via certaines <strong>technologies avancées</strong>.</p>
+                </div>
+
+                <div class="guide-section" id="militaire">
+                    <h2>⚔ Militaire &amp; Guerres</h2>
+                    <h3>Types d'unités</h3>
+                    <ul>
+                        <li>🪖 <strong>Infanterie (10 §) :</strong> unité de base, puissance 1</li>
+                        <li>🚗 <strong>Blindés (500 §) :</strong> puissance 8</li>
+                        <li>✈️ <strong>Aviation (1 000 §) :</strong> puissance 15</li>
+                        <li>⚓ <strong>Marine (800 §) :</strong> puissance 10</li>
+                        <li>🚀 <strong>Missiles (1 500 §) :</strong> puissance 20</li>
+                        <li>🎖 <strong>Forces spéciales (2 000 §) :</strong> puissance 25</li>
+                    </ul>
+                    <h3>Règles d'attaque</h3>
+                    <p>Pour attaquer un pays, il doit avoir au moins <strong>90% de votre territoire</strong>. Cette règle protège les petits pays des gros. Exception : les pays du <strong>top 5</strong> n'ont aucune restriction.</p>
+                    <h3>Déroulement d'un combat</h3>
+                    <p>Vous choisissez les unités à envoyer à chaque tour. Le résultat dépend des forces en présence avec une part d'aléatoire. Le défenseur bénéficie d'un <strong>bonus de 10%</strong>. En cas de victoire, vous gagnez du territoire.</p>
+                </div>
+
+                <div class="guide-section" id="technologie">
+                    <h2>🔬 Technologie</h2>
+                    <p>La recherche se divise en <strong>5 domaines</strong>, chacun apportant des bonus spécifiques.</p>
+                    <ul>
+                        <li>🌾 <strong>Agriculture :</strong> +15% production alimentaire par niveau</li>
+                        <li>⚔ <strong>Militaire :</strong> +10% puissance militaire par niveau</li>
+                        <li>🏭 <strong>Industrie :</strong> +15% revenus industriels par niveau, -0.5 pollution</li>
+                        <li>🏥 <strong>Médecine :</strong> +10% santé de la population par niveau</li>
+                        <li>🕵 <strong>Espionnage :</strong> +10% chance de succès des missions</li>
+                    </ul>
+                    <h3>Fonctionnement</h3>
+                    <p>Allouez votre budget de recherche entre les 5 domaines (total = 100%). Chaque tour génère des points selon votre budget. Quand vous atteignez le coût du niveau suivant, vous pouvez le débloquer manuellement.</p>
+                    <div class="guide-tip">💡 Le coût d'un niveau = 50 × (niveau actuel + 1). Niveau 1 coûte 50 pts, niveau 2 coûte 100 pts, etc.</div>
+                </div>
+
+                <div class="guide-section" id="diplomatie">
+                    <h2>🤝 Diplomatie</h2>
+                    <p>La diplomatie vous permet d'interagir avec les autres pays de manière pacifique ou coercitive.</p>
+                    <ul>
+                        <li><strong>Blocus économique :</strong> coupe totalement les revenus commerciaux du pays ciblé</li>
+                        <li><strong>Accord commercial :</strong> renforce vos relations avec un pays allié</li>
+                        <li><strong>Traité de paix :</strong> met fin à une guerre en cours</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section" id="espionnage">
+                    <h2>🕵 Espionnage</h2>
+                    <p>Vos agents peuvent effectuer des missions secrètes contre d'autres pays. La chance de succès dépend de votre niveau de technologie Espionnage.</p>
+                    <ul>
+                        <li><strong>Révéler les stats (200 §) :</strong> découvrez les statistiques d'un pays ennemi</li>
+                        <li><strong>Voler de l'argent (500 §) :</strong> dérobez jusqu'à 5% de leur trésorerie</li>
+                        <li><strong>Saboter l'industrie (800 §) :</strong> endommage leur production industrielle</li>
+                        <li><strong>Saboter l'armée (1 000 §) :</strong> détruit une partie de leurs unités</li>
+                    </ul>
+                    <div class="guide-tip">⚠️ En cas d'échec, la cible est notifiée d'une tentative d'espionnage.</div>
+                </div>
+
+                <div class="guide-section" id="marche">
+                    <h2>🏪 Marchés &amp; Échanges</h2>
+                    <p>Le marché permet aux joueurs d'échanger des ressources entre eux de deux façons :</p>
+                    <ul>
+                        <li><strong>Offre libre :</strong> publiez une offre (je donne X, je veux Y) visible par tous</li>
+                        <li><strong>Accord direct :</strong> acceptez l'offre d'un autre pays</li>
+                    </ul>
+                    <h3>Ressources échangeables</h3>
+                    <ul>
+                        <li>💰 Argent (G$)</li>
+                        <li>♻️ Crédits Carbone (CC)</li>
+                        <li>🔬 Points de Recherche</li>
+                        <li>🗺 Territoire (km²)</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section" id="alliances">
+                    <h2>🛡 Alliances</h2>
+                    <p>Rejoindre ou créer une alliance vous donne accès au <strong>chat d'alliance</strong> et vous permet de coordonner vos actions avec d'autres joueurs.</p>
+                    <div class="guide-tip">💡 En début de partie, une alliance est votre meilleure protection contre les attaques.</div>
+                </div>
+
+                <div class="guide-section" id="environnement">
+                    <h2>🌱 Environnement</h2>
+                    <p>La pollution est générée par votre industrie, votre population et votre commerce. Une pollution élevée réduit la croissance démographique et peut désertifier votre territoire.</p>
+                    <h3>Réduire la pollution</h3>
+                    <ul>
+                        <li>Plantez des forêts (réduction passive chaque tour)</li>
+                        <li>Améliorez la technologie industrielle</li>
+                        <li>Utilisez ou échangez vos Crédits Carbone</li>
+                        <li>Réduisez votre budget industrie temporairement</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section" id="classement">
+                    <h2>🏆 Classement</h2>
+                    <p>Le classement est basé sur un <strong>score global</strong> combinant :</p>
+                    <ul>
+                        <li>Trésorerie × 0.0001</li>
+                        <li>Population × 0.00001</li>
+                        <li>Puissance militaire × 0.05</li>
+                        <li>Niveaux technologiques × 10 chacun</li>
+                        <li>Territoire × 0.5</li>
+                    </ul>
+                    <p>Il n'y a pas de victoire définitive : le classement évolue en permanence au fil des tours.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

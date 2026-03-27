@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Classement — Anathas{% endblock %}
+{% block content %}
+<h1 class="page-title">Classement des Nations</h1>
+<div class="section-card">
+    <div class="section-body" style="padding:0">
+        <table class="data-table">
+            <thead>
+                <tr><th>#</th><th>Pays</th><th>Dirigeant</th><th>Alliance</th><th>Population</th><th>Trésorerie</th><th>Territoire</th><th>Mil.</th><th>Score</th><th>⚔</th></tr>
+            </thead>
+            <tbody>
+                {% for country in countries %}
+                <tr class="{% if loop.index==1 %}rank-1{% elif loop.index==2 %}rank-2{% elif loop.index==3 %}rank-3{% endif %} {% if country.owner.id == session.user_id %}my-row{% endif %}">
+                    <td class="rank-num">{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}{{ loop.index }}{% endif %}</td>
+                    <td class="country-name-cell">{{ country.name }}{% if country.is_blockaded %} 🚫{% endif %}</td>
+                    <td>{{ country.owner.username }}</td>
+                    <td>{{ country.alliance.name if country.alliance else '—' }}</td>
+                    <td>{{ "{:,}".format(country.population).replace(",","'") }}</td>
+                    <td>{{ "%.2f"|format(country.money/1e9) }} G$</td>
+                    <td>{{ country.territory_total() }}</td>
+                    <td>{{ "%.0f"|format(country.military_power) }}</td>
+                    <td style="font-weight:bold;color:var(--teal)">{{ "%.0f"|format(country.score) }}</td>
+                    <td>
+                        {% if country.owner.id != session.user_id %}
+                        <form method="POST" action="{{ url_for('declare_war', target_id=country.id) }}" style="display:inline">
+                            <button class="btn-attack" onclick="return confirm('Déclarer la guerre à {{ country.name }} ?')">⚔</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

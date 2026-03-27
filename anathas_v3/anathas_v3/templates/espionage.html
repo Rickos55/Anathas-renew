@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Espionnage — Anathas{% endblock %}
+{% block content %}
+<h1 class="page-title">Diplomatie - <span style="font-size:22px">Espionnage</span></h1>
+
+<div class="two-col">
+    <div class="section-card">
+        <div class="section-header"><span class="section-title">🕵 Lancer une mission</span></div>
+        <div class="section-body">
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px">
+                Niveau espionnage : <strong>{{ country.tech_espionage }}</strong>
+                — Chance de succès : <strong>{{ (40 + country.tech_espionage * 10)|int }}%</strong>
+            </p>
+            <form method="POST" action="{{ url_for('spy_mission') }}">
+                <div class="form-group">
+                    <label>Pays cible</label>
+                    <select name="target_id">
+                        {% for c in countries %}<option value="{{ c.id }}">{{ c.name }} ({{ c.owner.username }})</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type de mission</label>
+                    <select name="mission_type">
+                        <option value="reveal_stats">🔍 Révéler les statistiques (200 §)</option>
+                        <option value="steal_money">💰 Voler de l'argent (500 §)</option>
+                        <option value="sabotage_industry">🏭 Saboter l'industrie (800 §)</option>
+                        <option value="sabotage_army">💣 Saboter l'armée (1 000 §)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Envoyer l'agent</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><span class="section-title">📋 Agents disponibles</span></div>
+        <div class="section-body">
+            {% set agent_names = ['Alpha', 'Bravo', 'Charlie', 'Delta'] %}
+            {% for name in agent_names %}
+            <div class="agent-row">
+                <span class="agent-icon">🕵</span>
+                <span class="agent-name">Agent {{ name }}</span>
+                <span class="badge-available">Disponible</span>
+                <span style="font-size:12px;color:var(--text-dim)">Peut être engagé pour une nouvelle mission.</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header"><span class="section-title">📜 Historique des missions</span></div>
+    <div class="section-body">
+        {% if spy_missions %}
+        {% for m in spy_missions %}
+        <div class="spy-row">
+            <span class="{{ 'spy-success' if m.status == 'success' else 'spy-fail' }}">{{ '✅' if m.status == 'success' else '❌' }}</span>
+            &nbsp;{{ m.result_description }}
+            <span style="float:right;color:var(--text-dim);font-size:11px">{{ m.created_at.strftime('%d/%m %H:%M') }}</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="color:var(--text-dim);font-size:13px">Aucune mission effectuée.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

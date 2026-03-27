@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ country.name }} — Anathas{% endblock %}
+{% block content %}
+<h1 class="page-title">Économie &amp; Gestion</h1>
+
+<div class="two-col">
+    <div>
+        <div class="section-card">
+            <div class="section-header"><span class="section-title">💰 Trésorerie</span></div>
+            <div class="section-body">
+                <div class="stat-row"><span class="stat-label">Argent disponible</span><span class="stat-value teal">{{ "%.3f"|format(country.money/1e9) }} G$</span></div>
+                <div class="stat-row"><span class="stat-label">Agriculture</span><span class="stat-value">Niv. {{ country.agriculture }}</span></div>
+                <div class="stat-row"><span class="stat-label">Industrie</span><span class="stat-value">Niv. {{ country.industry }}</span></div>
+                <div class="stat-row"><span class="stat-label">Commerce</span><span class="stat-value">Niv. {{ country.commerce }}{% if country.is_blockaded %} <span class="badge-banned">BLOQUÉ</span>{% endif %}</span></div>
+                <div class="stat-row"><span class="stat-label">Pollution</span><span class="stat-value {% if country.pollution<=30 %}good{% elif country.pollution<=60 %}gold{% else %}bad{% endif %}">{{ "%.2f"|format(country.pollution) }}</span></div>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-top:14px">
+            <div class="section-header"><span class="section-title">📊 Budget de l'État</span></div>
+            <div class="section-body">
+                <form method="POST" action="{{ url_for('update_budget') }}" class="budget-form">
+                    <div class="budget-grid">
+                        <div class="budget-item">
+                            <label>🌾 Agriculture</label>
+                            <input type="number" name="budget_agriculture" value="{{ country.budget_agriculture|int }}" min="0" max="100">
+                            <span class="budget-pct">%</span>
+                        </div>
+                        <div class="budget-item">
+                            <label>🏭 Industrie</label>
+                            <input type="number" name="budget_industry" value="{{ country.budget_industry|int }}" min="0" max="100">
+                            <span class="budget-pct">%</span>
+                        </div>
+                        <div class="budget-item">
+                            <label>🏥 Santé</label>
+                            <input type="number" name="budget_health" value="{{ country.budget_health|int }}" min="0" max="100">
+                            <span class="budget-pct">%</span>
+                        </div>
+                        <div class="budget-item">
+                            <label>⚔ Militaire</label>
+                            <input type="number" name="budget_military" value="{{ country.budget_military|int }}" min="0" max="100">
+                            <span class="budget-pct">%</span>
+                        </div>
+                        <div class="budget-item">
+                            <label>🔬 Recherche</label>
+                            <input type="number" name="budget_research" value="{{ country.budget_research|int }}" min="0" max="100">
+                            <span class="budget-pct">%</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">Valider le budget</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="section-card">
+            <div class="section-header"><span class="section-title">👥 Population &amp; Société</span></div>
+            <div class="section-body">
+                <div class="stat-row"><span class="stat-label">Population</span><span class="stat-value teal">{{ "{:,}".format(country.population).replace(",","'") }} hab.</span></div>
+                <div class="stat-row">
+                    <span class="stat-label">Satisfaction</span>
+                    <span class="stat-value {% if country.satisfaction>=60 %}good{% elif country.satisfaction>=40 %}gold{% else %}bad{% endif %}">{{ "%.1f"|format(country.satisfaction) }}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {% if country.satisfaction>=60 %}progress-green{% elif country.satisfaction>=40 %}progress-gold{% else %}progress-red{% endif %}" style="width:{{ country.satisfaction }}%"></div>
+                </div>
+                <div class="stat-row"><span class="stat-label">Nourriture</span><span class="stat-value">{{ "%.1f"|format(country.food) }}%</span></div>
+                <div class="stat-row"><span class="stat-label">Santé</span><span class="stat-value">{{ "%.1f"|format(country.health) }}%</span></div>
+                <div class="stat-row"><span class="stat-label">Emploi</span><span class="stat-value">{{ "%.1f"|format(country.employment) }}%</span></div>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-top:14px">
+            <div class="section-header"><span class="section-title">⚔ Puissance militaire</span></div>
+            <div class="section-body">
+                <div class="stat-row"><span class="stat-label">Force totale</span><span class="stat-value teal">{{ "%.0f"|format(country.military_power) }}</span></div>
+                <div class="stat-row"><span class="stat-label">Infanterie</span><span class="stat-value">{{ country.infantry }}</span></div>
+                <div class="stat-row"><span class="stat-label">Blindés</span><span class="stat-value">{{ country.tanks }}</span></div>
+                <div class="stat-row"><span class="stat-label">Aviation</span><span class="stat-value">{{ country.aviation }}</span></div>
+                <div class="stat-row"><span class="stat-label">Marine</span><span class="stat-value">{{ country.navy }}</span></div>
+                <div class="stat-row"><span class="stat-label">Missiles</span><span class="stat-value">{{ country.missiles }}</span></div>
+                <div class="stat-row"><span class="stat-label">Forces spéciales</span><span class="stat-value">{{ country.special_forces }}</span></div>
+            </div>
+        </div>
+
+        <div class="section-card" style="margin-top:14px">
+            <div class="section-header"><span class="section-title">🏆 Score &amp; Classement</span></div>
+            <div class="section-body">
+                <div class="stat-row"><span class="stat-label">Score global</span><span class="stat-value teal" style="font-size:16px;font-weight:bold">{{ "%.0f"|format(country.score) }}</span></div>
+                <div class="stat-row"><span class="stat-label">Territoire</span><span class="stat-value">{{ country.territory_total() }} régions</span></div>
+                <div class="stat-row"><span class="stat-label">Alliance</span><span class="stat-value">{{ country.alliance.name if country.alliance else '—' }}</span></div>
+                <div class="stat-row"><span class="stat-label">Crédits carbone</span><span class="stat-value">{{ country.carbon_credits }} CC</span></div>
+                <div class="stat-row"><span class="stat-label">Points recherche</span><span class="stat-value">{{ "%.1f"|format(country.research_points) }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

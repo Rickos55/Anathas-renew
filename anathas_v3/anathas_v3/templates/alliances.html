@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Alliances — Anathas{% endblock %}
+{% block content %}
+<h1 class="page-title">Alliances</h1>
+
+{% if user.country and not user.country.alliance_id %}
+<div class="section-card" style="margin-bottom:14px">
+    <div class="section-header"><span class="section-title">⚔ Fonder une alliance</span></div>
+    <div class="section-body">
+        <form method="POST" action="{{ url_for('create_alliance') }}" style="max-width:400px">
+            <div class="form-group"><label>Nom</label><input type="text" name="name" required placeholder="Nom de l'alliance"></div>
+            <div class="form-group"><label>Description</label><textarea name="description" rows="2" placeholder="Présentation..."></textarea></div>
+            <button type="submit" class="btn btn-primary">Fonder</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if user.country and user.country.alliance_id %}
+<div class="alert alert-info">Vous êtes membre de : <strong>{{ user.country.alliance.name }}</strong> &nbsp;
+    <form method="POST" action="{{ url_for('leave_alliance') }}" style="display:inline">
+        <button class="btn btn-sm btn-danger" onclick="return confirm('Quitter cette alliance ?')">Quitter</button>
+    </form>
+</div>
+{% endif %}
+
+{% for alliance in alliances %}
+<div class="alliance-card">
+    <h3>🛡 {{ alliance.name }} <span style="font-size:12px;color:var(--text-dim)">({{ alliance.members|length }} membres)</span></h3>
+    {% if alliance.description %}<p style="font-size:13px;color:var(--text-dim);margin-bottom:8px">{{ alliance.description }}</p>{% endif %}
+    <div style="margin-bottom:8px">
+        {% for m in alliance.members %}<span class="member-tag">{{ m.name }}</span>{% endfor %}
+    </div>
+    {% if user.country and not user.country.alliance_id %}
+    <form method="POST" action="{{ url_for('join_alliance', alliance_id=alliance.id) }}">
+        <button class="btn btn-sm btn-primary">Rejoindre</button>
+    </form>
+    {% endif %}
+</div>
+{% else %}
+<p style="color:var(--text-dim);font-size:13px">Aucune alliance. Fondez la première !</p>
+{% endfor %}
+{% endblock %}
