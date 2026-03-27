@@ -3,25 +3,44 @@
 
 <div class="two-col">
 <div>
-<div class="section-card"><div class="section-header"><span class="section-title">💰 Trésorerie</span></div><div class="section-body">
-<div class="stat-row"><span class="stat-label">Argent</span><span class="stat-value teal"><%= (country.money/1e9).toFixed(3) %> G$</span></div>
-<div class="stat-row"><span class="stat-label">Agriculture</span><span class="stat-value">Niv. <%= country.agriculture %></span></div>
-<div class="stat-row"><span class="stat-label">Industrie</span><span class="stat-value">Niv. <%= country.industry %></span></div>
-<div class="stat-row"><span class="stat-label">Commerce</span><span class="stat-value">Niv. <%= country.commerce %><% if(country.isBlockaded){ %> <span class="badge-banned">BLOQUÉ</span><% } %></span></div>
-<div class="stat-row"><span class="stat-label">Pollution</span><span class="stat-value <%= country.pollution<=30?'good':country.pollution<=60?'gold':'bad' %>"><%= country.pollution.toFixed(2) %></span></div>
+<div class="section-card"><div class="section-header"><span class="section-title">💰 Trésorerie &amp; Production</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Argent disponible</span><span class="stat-value teal" style="font-size:15px"><%= country.money.toLocaleString('fr-FR') %> §</span></div>
+<div class="stat-row"><span class="stat-label">Soit en G$</span><span class="stat-value teal"><%= (country.money/1e9).toFixed(3) %> G$</span></div>
+<hr style="margin:8px 0;border:none;border-top:1px solid var(--border)">
+<div class="stat-row">
+  <span class="stat-label">🌾 Agriculture</span>
+  <span class="stat-value">Niv. <%= country.agriculture %> <span style="font-size:11px;color:var(--text-dim)">(+<%= projections.agriIncome.toLocaleString('fr-FR') %> §/tour)</span></span>
+</div>
+<div class="progress-bar"><div class="progress-fill progress-green" style="width:<%= Math.min(100, ((country.investAgri||0)/100)*100) %>%"></div></div>
+<div class="stat-row">
+  <span class="stat-label">🏭 Industrie</span>
+  <span class="stat-value">Niv. <%= country.industry %> <span style="font-size:11px;color:var(--text-dim)">(+<%= projections.industryIncome.toLocaleString('fr-FR') %> §/tour)</span></span>
+</div>
+<div class="progress-bar"><div class="progress-fill progress-cyan" style="width:<%= Math.min(100, ((country.investIndustry||0)/100)*100) %>%"></div></div>
+<div class="stat-row">
+  <span class="stat-label">🛒 Commerce</span>
+  <span class="stat-value">Niv. <%= country.commerce %> <span style="font-size:11px;color:var(--text-dim)">(+<%= projections.commerceIncome.toLocaleString('fr-FR') %> §/tour)</span></span>
+</div>
+<div class="progress-bar"><div class="progress-fill progress-gold" style="width:<%= Math.min(100, ((country.investCommerce||0)/100)*100) %>%"></div></div>
+<div class="stat-row"><span class="stat-label">Taxe population</span><span class="stat-value">+<%= projections.popTax.toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row"><span class="stat-label">Coût militaire</span><span class="stat-value bad">-<%= projections.militaryCost.toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row" style="border-top:2px solid var(--border);margin-top:4px;padding-top:6px">
+  <span class="stat-label">Bilan par tour</span>
+  <span class="stat-value <%= projections.moneyDelta >= 0 ? 'good' : 'bad' %>" style="font-size:14px;font-weight:bold">
+    <%= projections.moneyDelta >= 0 ? '+' : '' %><%= projections.moneyDelta.toLocaleString('fr-FR') %> §
+  </span>
+</div>
 </div></div>
 
-<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🔮 Prochain tour</span></div><div class="section-body">
-<div class="stat-row"><span class="stat-label">Revenus</span><span class="stat-value good">+<%= projections.income.toLocaleString('fr-FR') %> §</span></div>
-<div class="stat-row"><span class="stat-label">Coût militaire</span><span class="stat-value bad">-<%= projections.militaryCost.toLocaleString('fr-FR') %> §</span></div>
-<div class="stat-row"><span class="stat-label">Bilan argent</span><span class="stat-value <%= projections.moneyDelta >= 0 ? 'good' : 'bad' %>"><%= projections.moneyDelta >= 0 ? '+' : '' %><%= projections.moneyDelta.toLocaleString('fr-FR') %> §</span></div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🔮 Projections du prochain tour</span></div><div class="section-body">
 <div class="stat-row"><span class="stat-label">Population</span><span class="stat-value <%= projections.popDelta >= 0 ? 'good' : 'bad' %>"><%= projections.popDelta >= 0 ? '+' : '' %><%= projections.popDelta.toLocaleString('fr-FR') %></span></div>
 <div class="stat-row"><span class="stat-label">Satisfaction</span><span class="stat-value <%= projections.satisfDelta >= 0 ? 'good' : 'bad' %>"><%= projections.satisfDelta >= 0 ? '+' : '' %><%= projections.satisfDelta %>%</span></div>
 <div class="stat-row"><span class="stat-label">Pollution</span><span class="stat-value <%= projections.pollDelta <= 0 ? 'good' : 'bad' %>"><%= projections.pollDelta >= 0 ? '+' : '' %><%= projections.pollDelta %></span></div>
-<div class="stat-row"><span class="stat-label">Points recherche</span><span class="stat-value good">+<%= projections.researchIncome %></span></div>
+<div class="stat-row"><span class="stat-label">Points recherche</span><span class="stat-value good">+<%= projections.researchIncome %> pts</span></div>
 </div></div>
 
 <div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📊 Budget de l'État</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Le budget alloué à agri/industrie/commerce fait progressivement monter les niveaux.</p>
 <form method="POST" action="/budget" class="budget-form">
 <div class="budget-grid">
 <% [['agriculture','🌾 Agriculture'],['industry','🏭 Industrie'],['health','🏥 Santé'],['military','⚔ Militaire'],['research','🔬 Recherche']].forEach(([k,l]) => { %>
@@ -38,24 +57,30 @@
 <div class="stat-row"><span class="stat-label">Population</span><span class="stat-value teal"><%= country.population.toLocaleString('fr-FR') %> hab.</span></div>
 <div class="stat-row"><span class="stat-label">Satisfaction</span><span class="stat-value <%= country.satisfaction>=60?'good':country.satisfaction>=40?'gold':'bad' %>"><%= country.satisfaction.toFixed(1) %>%</span></div>
 <div class="progress-bar"><div class="progress-fill <%= country.satisfaction>=60?'progress-green':country.satisfaction>=40?'progress-gold':'progress-red' %>" style="width:<%= country.satisfaction %>%"></div></div>
-<div class="stat-row"><span class="stat-label">Nourriture</span><span class="stat-value"><%= country.food.toFixed(1) %>%</span></div>
+<div class="stat-row"><span class="stat-label">Nourriture</span><span class="stat-value <%= country.food>=60?'good':country.food>=30?'gold':'bad' %>"><%= country.food.toFixed(1) %>%</span></div>
 <div class="stat-row"><span class="stat-label">Santé</span><span class="stat-value"><%= country.health.toFixed(1) %>%</span></div>
 <div class="stat-row"><span class="stat-label">Emploi</span><span class="stat-value"><%= country.employment.toFixed(1) %>%</span></div>
+<div class="stat-row"><span class="stat-label">Pollution</span><span class="stat-value <%= country.pollution<=30?'good':country.pollution<=60?'gold':'bad' %>"><%= country.pollution.toFixed(2) %></span></div>
 </div></div>
 
-<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">⚔ Militaire</span></div><div class="section-body">
-<div class="stat-row"><span class="stat-label">Puissance</span><span class="stat-value teal"><%= Math.round(country.militaryPower) %></span></div>
-<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Forces spéciales']].forEach(([k,l]) => { %>
-<div class="stat-row"><span class="stat-label"><%= l %></span><span class="stat-value"><%= country[k] %></span></div>
-<% }) %>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🔬 Recherche</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Points accumulés</span><span class="stat-value teal"><%= Math.round(country.researchPoints) %> pts</span></div>
+<div class="stat-row"><span class="stat-label">+/tour</span><span class="stat-value good">+<%= projections.researchIncome %> pts</span></div>
+<hr style="margin:8px 0;border:none;border-top:1px solid var(--border)">
+<div class="stat-row"><span class="stat-label">Agriculture</span><span class="stat-value">Niv. <%= country.techAgriculture %> (<%= Math.round(country.rpAgriculture||0) %> pts)</span></div>
+<div class="stat-row"><span class="stat-label">Militaire</span><span class="stat-value">Niv. <%= country.techMilitary %> (<%= Math.round(country.rpMilitary||0) %> pts)</span></div>
+<div class="stat-row"><span class="stat-label">Industrie</span><span class="stat-value">Niv. <%= country.techIndustry %> (<%= Math.round(country.rpIndustry||0) %> pts)</span></div>
+<div class="stat-row"><span class="stat-label">Médecine</span><span class="stat-value">Niv. <%= country.techHealth %> (<%= Math.round(country.rpHealth||0) %> pts)</span></div>
+<div class="stat-row"><span class="stat-label">Espionnage</span><span class="stat-value">Niv. <%= country.techEspionage %> (<%= Math.round(country.rpEspionage||0) %> pts)</span></div>
+<a href="/research" class="btn btn-primary btn-sm" style="margin-top:8px">Gérer la recherche</a>
 </div></div>
 
-<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🏆 Score &amp; Classement</span></div><div class="section-body">
-<div class="stat-row"><span class="stat-label">Score global</span><span class="stat-value teal" style="font-size:16px;font-weight:bold"><%= Math.round(country.score) %></span></div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">⚔ Militaire &amp; Score</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Puissance mil.</span><span class="stat-value teal"><%= Math.round(country.militaryPower) %></span></div>
+<div class="stat-row"><span class="stat-label">Score global</span><span class="stat-value teal" style="font-size:15px;font-weight:bold"><%= Math.round(country.score) %></span></div>
 <div class="stat-row"><span class="stat-label">Territoire</span><span class="stat-value"><%= country.plains+country.desert+country.urban %> régions</span></div>
-<div class="stat-row"><span class="stat-label">Alliance</span><span class="stat-value"><%= alliance ? alliance.name : '—' %></span></div>
 <div class="stat-row"><span class="stat-label">Crédits carbone</span><span class="stat-value"><%= country.carbonCredits %> CC</span></div>
-<div class="stat-row"><span class="stat-label">Points recherche</span><span class="stat-value"><%= Math.round(country.researchPoints) %></span></div>
+<div class="stat-row"><span class="stat-label">Alliance</span><span class="stat-value"><%= alliance ? alliance.name : '—' %></span></div>
 </div></div>
 </div></div>
 <%- include('partials/footer') %>

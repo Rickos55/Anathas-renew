@@ -1,0 +1,69 @@
+<%- include('partials/header', {title:'Messagerie', session, unread, currentCountry}) %>
+<h1 class="page-title">✉️ Messagerie Privée</h1>
+
+<div class="two-col">
+<!-- Nouveau message -->
+<div class="section-card"><div class="section-header"><span class="section-title">✍️ Nouveau message</span></div><div class="section-body">
+<form method="POST" action="/messages/send">
+<div class="form-group">
+  <label>Destinataire</label>
+  <select name="to_user_id">
+    <% users.forEach(u => { %>
+    <option value="<%= u.id %>"><%= u.username %> (<%= u.Country ? u.Country.name : '—' %>)</option>
+    <% }) %>
+  </select>
+</div>
+<div class="form-group">
+  <label>Message</label>
+  <textarea name="content" rows="5" required placeholder="Votre message..." maxlength="2000"></textarea>
+</div>
+<button type="submit" class="btn btn-primary">Envoyer</button>
+</form>
+</div></div>
+
+<!-- Boîte de réception -->
+<div>
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📥 Réception (<%= received.length %>)</span></div><div class="section-body" style="padding:0">
+<% if(received.length) { %>
+<table class="data-table">
+<thead><tr><th>De</th><th>Message</th><th>Date</th><th></th></tr></thead>
+<tbody>
+<% received.forEach(m => { %>
+<tr class="<%= !m.isRead ? 'my-row' : '' %>">
+<td><strong><%= m.fromUser ? m.fromUser.username : '?' %></strong></td>
+<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= m.content.substring(0,80) %><%= m.content.length>80?'...':'' %></td>
+<td style="font-size:11px;color:var(--text-dim);white-space:nowrap"><%= new Date(m.createdAt).toLocaleDateString('fr-FR') %></td>
+<td>
+<button onclick="document.getElementById('msg-<%= m.id %>').style.display=document.getElementById('msg-<%= m.id %>').style.display==='none'?'block':'none'" class="btn btn-sm btn-secondary">Lire</button>
+<form method="POST" action="/messages/delete/<%= m.id %>" style="display:inline"><button class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ?')">✕</button></form>
+</td>
+</tr>
+<tr><td colspan="4"><div id="msg-<%= m.id %>" style="display:none;padding:10px;background:var(--bg-section);border-top:1px solid var(--border);white-space:pre-wrap;font-size:13px"><%= m.content %></div></td></tr>
+<% }) %>
+</tbody>
+</table>
+<% } else { %><p style="padding:12px;color:var(--text-dim);font-size:13px">Aucun message reçu.</p><% } %>
+</div></div>
+
+<!-- Boîte d'envoi -->
+<div class="section-card"><div class="section-header"><span class="section-title">📤 Envoyés (<%= sent.length %>)</span></div><div class="section-body" style="padding:0">
+<% if(sent.length) { %>
+<table class="data-table">
+<thead><tr><th>À</th><th>Message</th><th>Date</th><th>Lu</th><th></th></tr></thead>
+<tbody>
+<% sent.forEach(m => { %>
+<tr>
+<td><strong><%= m.toUser ? m.toUser.username : '?' %></strong></td>
+<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= m.content.substring(0,60) %><%= m.content.length>60?'...':'' %></td>
+<td style="font-size:11px;color:var(--text-dim);white-space:nowrap"><%= new Date(m.createdAt).toLocaleDateString('fr-FR') %></td>
+<td><%= m.isRead ? '✅' : '⏳' %></td>
+<td><form method="POST" action="/messages/delete/<%= m.id %>"><button class="btn btn-sm btn-danger" onclick="return confirm('Supprimer ?')">✕</button></form></td>
+</tr>
+<% }) %>
+</tbody>
+</table>
+<% } else { %><p style="padding:12px;color:var(--text-dim);font-size:13px">Aucun message envoyé.</p><% } %>
+</div></div>
+</div>
+</div>
+<%- include('partials/footer') %>

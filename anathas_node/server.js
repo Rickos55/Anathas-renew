@@ -5,6 +5,7 @@ const flash = require('connect-flash');
 const methodOverride = require('method-override');
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
+const SQLiteStore = require('connect-sqlite3')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,6 +81,9 @@ const Country = sequelize.define('Country', {
   budgetMilitary: { type: DataTypes.FLOAT, defaultValue: 20 },
   budgetResearch: { type: DataTypes.FLOAT, defaultValue: 20 },
   isBlockaded: { type: DataTypes.BOOLEAN, defaultValue: false },
+  investAgri: { type: DataTypes.FLOAT, defaultValue: 0 },
+  investIndustry: { type: DataTypes.FLOAT, defaultValue: 0 },
+  investCommerce: { type: DataTypes.FLOAT, defaultValue: 0 },
   score: { type: DataTypes.FLOAT, defaultValue: 0 },
   allianceId: { type: DataTypes.INTEGER, allowNull: true }
 });
@@ -159,6 +163,15 @@ const SpyMission = sequelize.define('SpyMission', {
   result: { type: DataTypes.TEXT, defaultValue: '' }
 });
 
+const PrivateMessage = sequelize.define('PrivateMessage', {
+  fromUserId: { type: DataTypes.INTEGER, allowNull: false },
+  toUserId: { type: DataTypes.INTEGER, allowNull: false },
+  content: { type: DataTypes.TEXT, allowNull: false },
+  isRead: { type: DataTypes.BOOLEAN, defaultValue: false },
+  isDeletedBySender: { type: DataTypes.BOOLEAN, defaultValue: false },
+  isDeletedByRecipient: { type: DataTypes.BOOLEAN, defaultValue: false }
+});
+
 // Associations
 User.hasOne(Country, { foreignKey: 'userId' });
 Country.belongsTo(User, { foreignKey: 'userId' });
@@ -200,7 +213,8 @@ app.use(session({
   secret: process.env.SECRET_KEY || 'anathas-secret-dev',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+  store: new SQLiteStore({ db: 'sessions.db', dir: './' }),
+  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 jours
 }));
 app.use(flash());
 
@@ -744,7 +758,9 @@ app.get('/guide', async (req, res) => {
 // ─── ADMIN ───
 app.get('/admin', requireAdmin, async (req, res) => {
   const user = await User.findByPk(req.session.userId);
-  const users = await User.findAll({ include: Country, order: [['createdAt','DESC']] });
+  const allUsers = await User.findAll({ order: [['createdAt','DESC']] });
+  for (const u of allUsers) { u.Country = await Country.findOne({ where: { userId: u.id } }); }
+  const users = allUsers;
   const unread = await getUnread(user.id);
   res.render('admin', { user, users, unread });
 });
@@ -794,10 +810,17 @@ app.post('/profile/update', requireLogin, async (req, res) => {
 
 // ─── JOUEURS CONNECTÉS ───
 app.get('/connected', requireLogin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId, { include: Country });
-  const users = await User.findAll({ include: Country, order: [['updatedAt','DESC']] });
-  const unread = await getUnread(user.id);
-  res.render('connected', { user, country: user.Country, users, unread });
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const allUsers = await User.findAll({ order: [['createdAt','DESC']] });
+  for (const u of allUsers) { u.Country = await Country.findOne({ where: { userId: u.id } }); }
+  const users = allUsers;
+    const unread = await getUnread(user.id);
+    res.render('connected', { user, country: user.Country, users, unread });
+  } catch(err) {
+    console.error('Connected error:', err);
+    res.redirect('/dashboard');
+  }
 });
 
 // ─── ADMIN EDIT COUNTRY ───
@@ -828,17 +851,92 @@ app.post('/admin/country/:countryId', requireAdmin, async (req, res) => {
   res.redirect('/admin');
 });
 
+// ─── MESSAGERIE PRIVÉE ───
+app.get('/messages', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const unread = await getUnread(user.id);
+  // Boîte de réception
+  const received = await PrivateMessage.findAll({
+    where: { toUserId: user.id, isDeletedByRecipient: false },
+    order: [['createdAt','DESC']], limit: 50
+  });
+  // Boîte d'envoi
+  const sent = await PrivateMessage.findAll({
+    where: { fromUserId: user.id, isDeletedBySender: false },
+    order: [['createdAt','DESC']], limit: 50
+  });
+  // Enrichir avec les noms
+  for (const m of [...received, ...sent]) {
+    m.fromUser = await User.findByPk(m.fromUserId);
+    m.toUser = await User.findByPk(m.toUserId);
+  }
+  // Marquer comme lus
+  await PrivateMessage.update({ isRead: true }, { where: { toUserId: user.id, isRead: false } });
+  const users = await User.findAll({ where: { id: { [Sequelize.Op.ne]: user.id } }, include: Country });
+  res.render('messages', { user, country: user.Country, received, sent, users, unread });
+});
+
+app.post('/messages/send', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId);
+  const { to_user_id, content } = req.body;
+  if (!to_user_id || !content || !content.trim()) return res.redirect('/messages');
+  const target = await User.findByPk(to_user_id);
+  if (!target) return res.redirect('/messages');
+  await PrivateMessage.create({
+    fromUserId: user.id,
+    toUserId: parseInt(to_user_id),
+    content: content.trim()
+  });
+  // Notification
+  await notify(parseInt(to_user_id), `✉️ Nouveau message de ${user.username}`, 'info');
+  res.redirect('/messages');
+});
+
+app.post('/messages/delete/:id', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId);
+  const msg = await PrivateMessage.findByPk(req.params.id);
+  if (!msg) return res.redirect('/messages');
+  if (msg.fromUserId === user.id) msg.isDeletedBySender = true;
+  if (msg.toUserId === user.id) msg.isDeletedByRecipient = true;
+  await msg.save();
+  res.redirect('/messages');
+});
+
+app.get('/api/messages/unread', requireLogin, async (req, res) => {
+  const count = await PrivateMessage.count({ where: { toUserId: req.session.userId, isRead: false } });
+  res.json({ count });
+});
+
 // ─── TOUR ENGINE ───
 async function processTurn() {
   const countries = await Country.findAll();
   for (const c of countries) {
     const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
-    const agriIncome = c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total);
-    const industryIncome = c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total);
-    const commerceIncome = c.isBlockaded ? 0 : c.commerce * 60 * (c.budgetIndustry / total);
-    const popTax = c.population * 0.001;
-    const militaryCost = c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20;
-    c.money = Math.max(0, c.money + agriIncome + industryIncome + commerceIncome + popTax - militaryCost);
+
+    // Revenus de base
+    const agriIncome = Math.round(c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
+    const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total));
+    const commerceIncome = c.isBlockaded ? 0 : Math.round(c.commerce * 60 * (c.budgetIndustry / total));
+    const popTax = Math.round(c.population * 0.001);
+    const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
+    const totalIncome = agriIncome + industryIncome + commerceIncome + popTax;
+    c.money = Math.max(0, Math.round(c.money + totalIncome - militaryCost));
+
+    // Investissement dans les secteurs (le budget alloué fait monter les niveaux progressivement)
+    // Chaque tour, une partie du budget investi dans agri/industrie/commerce améliore les niveaux
+    const investAgri = (c.budgetAgriculture / total) * totalIncome * 0.05;
+    const investIndustry = (c.budgetIndustry / total) * totalIncome * 0.05;
+    const investCommerce = (c.budgetIndustry / total) * totalIncome * 0.03;
+    // Accumulation des points d'investissement (niveau monte tous les 100 points)
+    c.investAgri = (c.investAgri || 0) + investAgri;
+    c.investIndustry = (c.investIndustry || 0) + investIndustry;
+    c.investCommerce = (c.investCommerce || 0) + investCommerce;
+    const upgradeCost = 100;
+    if (c.investAgri >= upgradeCost) { c.agriculture += 1; c.investAgri -= upgradeCost; }
+    if (c.investIndustry >= upgradeCost) { c.industry += 1; c.investIndustry -= upgradeCost; }
+    if (c.investCommerce >= upgradeCost) { c.commerce += 1; c.investCommerce -= upgradeCost; }
+
+    // Population
     const foodProd = c.agriculture * 1000 * (1 + c.techAgriculture * 0.1);
     c.food = Math.min(100, Math.max(0, (foodProd / Math.max(c.population, 1)) * 50));
     c.health = Math.min(100, Math.max(0, (c.budgetHealth / total) * 100 * (1 + c.techHealth * 0.1)));
@@ -847,16 +945,25 @@ async function processTurn() {
     c.satisfaction = Math.min(100, Math.max(0, (c.food / 100 + c.health / 100 + c.employment / 100) / 3 * 100));
     const growthRate = c.satisfaction >= 50 ? 0.002 : -0.001;
     c.population = Math.max(1000, Math.round(c.population * (1 + growthRate)));
+
+    // Pollution
     c.pollution = Math.max(0, Math.min(100, c.pollution + c.industry * 0.5 + c.population * 0.00001 - c.forests * 0.1 - c.techIndustry * 0.5));
-    const researchIncome = c.money * (c.budgetResearch / total) * 0.01;
+    // CC naturels toutes les 8 tours (approx 4 jours)
+    if (Math.random() < 0.125) c.carbonCredits += 1;
+
+    // Recherche
+    const researchBudget = c.money * (c.budgetResearch / total) * 0.02;
+    c.researchPoints = (c.researchPoints || 0) + researchBudget;
     const totalAlloc = c.allocAgriculture + c.allocMilitary + c.allocIndustry + c.allocHealth + c.allocEspionage || 100;
     ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
-      c[`rp${d}`] += researchIncome * (c[`alloc${d}`] / totalAlloc);
+      c[`rp${d}`] = (c[`rp${d}`] || 0) + researchBudget * (c[`alloc${d}`] / totalAlloc);
     });
+
     c.militaryPower = computeMilitaryPower(c);
     c.score = computeScore(c);
     await c.save();
   }
+  console.log(`Tour traité à ${new Date().toISOString()} - ${countries.length} pays`);
 }
 
 // ─── SCHEDULER (2 tours/jour à 10h et 20h UTC) ───
@@ -886,11 +993,11 @@ function scheduleturns() {
 // ─── PROJECTIONS ───
 function computeProjections(c) {
   const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
-  const agriIncome = c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total);
-  const industryIncome = c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total);
-  const commerceIncome = c.isBlockaded ? 0 : c.commerce * 60 * (c.budgetIndustry / total);
-  const popTax = c.population * 0.001;
-  const militaryCost = c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20;
+  const agriIncome = Math.round(c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
+  const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total));
+  const commerceIncome = c.isBlockaded ? 0 : Math.round(c.commerce * 60 * (c.budgetIndustry / total));
+  const popTax = Math.round(c.population * 0.001);
+  const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
   const incomeTotal = agriIncome + industryIncome + commerceIncome + popTax;
   const moneyDelta = incomeTotal - militaryCost;
 
@@ -902,19 +1009,15 @@ function computeProjections(c) {
   const nextSatisf = Math.min(100, Math.max(0, (nextFood / 100 + nextHealth / 100 + nextEmploy / 100) / 3 * 100));
   const growthRate = nextSatisf >= 50 ? 0.002 : -0.001;
   const popDelta = Math.round(c.population * growthRate);
-
-  const pollDelta = (c.industry * 0.5 + c.population * 0.00001) - (c.forests * 0.1 + c.techIndustry * 0.5);
-
-  const researchIncome = c.money * (c.budgetResearch / total) * 0.01;
+  const pollDelta = Math.round(((c.industry * 0.5 + c.population * 0.00001) - (c.forests * 0.1 + c.techIndustry * 0.5)) * 100) / 100;
+  const researchIncome = Math.round(c.money * (c.budgetResearch / total) * 0.01 * 10) / 10;
 
   return {
-    moneyDelta: Math.round(moneyDelta),
-    income: Math.round(incomeTotal),
-    militaryCost: Math.round(militaryCost),
+    agriIncome, industryIncome, commerceIncome, popTax, militaryCost,
+    moneyDelta, income: incomeTotal,
     popDelta,
     satisfDelta: Math.round((nextSatisf - c.satisfaction) * 10) / 10,
-    pollDelta: Math.round(pollDelta * 100) / 100,
-    researchIncome: Math.round(researchIncome * 10) / 10
+    pollDelta, researchIncome
   };
 }
 
@@ -927,8 +1030,8 @@ async function init() {
     if (!adminExists) {
       const hash = await bcrypt.hash('admin123', 10);
       const admin = await User.create({ username: 'admin', email: 'admin@anathas.com', password: hash, role: 'admin' });
-      await Country.create({ name: 'Administration', userId: admin.id });
-      console.log('Admin créé : admin / admin123');
+      await Country.create({ name: 'Administration', userId: admin.id, money: 0 });
+      console.log('Admin créé : admin / admin123 — CHANGEZ CE MOT DE PASSE !');
     }
     const catCount = await ForumCategory.count();
     if (catCount === 0) {
