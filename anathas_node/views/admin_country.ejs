@@ -1,0 +1,63 @@
+<%- include('partials/header', {title:'Modifier pays', session, unread, currentCountry}) %>
+<h1 class="page-title">⚙ Modifier le pays : <%= country.name %></h1>
+<p style="color:var(--text-dim);margin-bottom:14px">Joueur : <strong><%= country.User ? country.User.username : '?' %></strong></p>
+
+<form method="POST" action="/admin/country/<%= country.id %>">
+<div class="two-col">
+
+<div class="section-card"><div class="section-header"><span class="section-title">💰 Économie</span></div><div class="section-body">
+<div class="form-group"><label>Argent (§)</label><input type="number" name="money" value="<%= country.money %>" step="1"></div>
+<div class="form-group"><label>Agriculture (niveau)</label><input type="number" name="agriculture" value="<%= country.agriculture %>" min="0"></div>
+<div class="form-group"><label>Industrie (niveau)</label><input type="number" name="industry" value="<%= country.industry %>" min="0"></div>
+<div class="form-group"><label>Commerce (niveau)</label><input type="number" name="commerce" value="<%= country.commerce %>" min="0"></div>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">👥 Population</span></div><div class="section-body">
+<div class="form-group"><label>Population</label><input type="number" name="population" value="<%= country.population %>" min="0"></div>
+<div class="form-group"><label>Satisfaction (%)</label><input type="number" name="satisfaction" value="<%= country.satisfaction %>" min="0" max="100" step="0.1"></div>
+<div class="form-group"><label>Emploi (%)</label><input type="number" name="employment" value="<%= country.employment %>" min="0" max="100" step="0.1"></div>
+<div class="form-group"><label>Santé (%)</label><input type="number" name="health" value="<%= country.health %>" min="0" max="100" step="0.1"></div>
+<div class="form-group"><label>Nourriture (%)</label><input type="number" name="food" value="<%= country.food %>" min="0" max="100" step="0.1"></div>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">🗺 Territoire</span></div><div class="section-body">
+<div class="form-group"><label>Plaines</label><input type="number" name="plains" value="<%= country.plains %>" min="0"></div>
+<div class="form-group"><label>Déserts</label><input type="number" name="desert" value="<%= country.desert %>" min="0"></div>
+<div class="form-group"><label>Zones urbaines</label><input type="number" name="urban" value="<%= country.urban %>" min="0"></div>
+<div class="form-group"><label>Forêts (km²)</label><input type="number" name="forests" value="<%= country.forests %>" min="0"></div>
+<div class="form-group"><label>Pollution</label><input type="number" name="pollution" value="<%= country.pollution %>" min="0" max="100" step="0.1"></div>
+<div class="form-group"><label>Crédits carbone</label><input type="number" name="carbonCredits" value="<%= country.carbonCredits %>" min="0"></div>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">⚔ Militaire</span></div><div class="section-body">
+<div class="form-group"><label>Infanterie</label><input type="number" name="infantry" value="<%= country.infantry %>" min="0"></div>
+<div class="form-group"><label>Blindés</label><input type="number" name="tanks" value="<%= country.tanks %>" min="0"></div>
+<div class="form-group"><label>Aviation</label><input type="number" name="aviation" value="<%= country.aviation %>" min="0"></div>
+<div class="form-group"><label>Marine</label><input type="number" name="navy" value="<%= country.navy %>" min="0"></div>
+<div class="form-group"><label>Missiles</label><input type="number" name="missiles" value="<%= country.missiles %>" min="0"></div>
+<div class="form-group"><label>Forces spéciales</label><input type="number" name="specialForces" value="<%= country.specialForces %>" min="0"></div>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">🔬 Technologie</span></div><div class="section-body">
+<div class="form-group"><label>Tech Agriculture</label><input type="number" name="techAgriculture" value="<%= country.techAgriculture %>" min="0"></div>
+<div class="form-group"><label>Tech Militaire</label><input type="number" name="techMilitary" value="<%= country.techMilitary %>" min="0"></div>
+<div class="form-group"><label>Tech Industrie</label><input type="number" name="techIndustry" value="<%= country.techIndustry %>" min="0"></div>
+<div class="form-group"><label>Tech Santé</label><input type="number" name="techHealth" value="<%= country.techHealth %>" min="0"></div>
+<div class="form-group"><label>Tech Espionnage</label><input type="number" name="techEspionage" value="<%= country.techEspionage %>" min="0"></div>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">📊 Budget (%)</span></div><div class="section-body">
+<div class="form-group"><label>Agriculture</label><input type="number" name="budgetAgriculture" value="<%= country.budgetAgriculture %>" min="0" max="100"></div>
+<div class="form-group"><label>Industrie</label><input type="number" name="budgetIndustry" value="<%= country.budgetIndustry %>" min="0" max="100"></div>
+<div class="form-group"><label>Santé</label><input type="number" name="budgetHealth" value="<%= country.budgetHealth %>" min="0" max="100"></div>
+<div class="form-group"><label>Militaire</label><input type="number" name="budgetMilitary" value="<%= country.budgetMilitary %>" min="0" max="100"></div>
+<div class="form-group"><label>Recherche</label><input type="number" name="budgetResearch" value="<%= country.budgetResearch %>" min="0" max="100"></div>
+</div></div>
+
+</div>
+<div style="margin-top:14px;display:flex;gap:10px">
+<button type="submit" class="btn btn-primary">💾 Sauvegarder les modifications</button>
+<a href="/admin" class="btn btn-secondary">Retour</a>
+</div>
+</form>
+<%- include('partials/footer') %>

@@ -1,0 +1,22 @@
+<%- include('partials/header', {title:topic.title, session, unread, currentCountry}) %>
+<div class="breadcrumb"><a href="/forum">Forum</a> › <a href="/forum/category/<%= topic.categoryId %>"><%= topic.category ? topic.category.name : '' %></a> › <%= topic.title %></div>
+<div class="topic-header"><h1 class="page-title" style="margin-bottom:0"><%= topic.title %></h1>
+<% if(['admin','moderator'].includes(session.role)) { %>
+<div class="topic-mod-actions">
+<form method="POST" action="/forum/topic/<%= topic.id %>/pin" style="display:inline"><button class="btn btn-sm btn-secondary"><%= topic.isPinned?'Désépingler':'📌' %></button></form>
+<form method="POST" action="/forum/topic/<%= topic.id %>/lock" style="display:inline"><button class="btn btn-sm btn-secondary"><%= topic.isLocked?'🔓':'🔒' %></button></form>
+</div><% } %></div>
+<% posts.forEach(p => { %>
+<div class="forum-post-box">
+<div class="forum-post-header"><span class="forum-post-author role-<%= p.authorUser ? p.authorUser.role : '' %>"><%= p.authorUser ? p.authorUser.username : '?' %></span><span class="badge badge-<%= p.authorUser ? p.authorUser.role : 'player' %>"><%= p.authorUser ? p.authorUser.role : '' %></span><span style="margin-left:auto;font-size:11px;color:var(--text-dim)"><%= new Date(p.createdAt).toLocaleString('fr-FR') %></span></div>
+<div class="forum-post-body"><%= p.content %></div>
+</div>
+<% }) %>
+<% if(!topic.isLocked || ['admin','moderator'].includes(session.role)) { %>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">✍️ Répondre</span></div><div class="section-body">
+<form method="POST" action="/forum/topic/<%= topic.id %>/reply">
+<div class="form-group"><textarea name="content" required rows="4"></textarea></div>
+<button type="submit" class="btn btn-primary">Publier</button>
+</form></div></div>
+<% } else { %><div class="alert alert-warn" style="margin-top:14px">🔒 Ce sujet est verrouillé.</div><% } %>
+<%- include('partials/footer') %>

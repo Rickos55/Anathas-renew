@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Connexion — Anathas</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<div class="auth-page">
+<div class="auth-logo">ANATHAS</div>
+<div class="auth-tagline">Jeu de gestion et de stratégie multijoueur</div>
+<div class="auth-card">
+<h2>🔐 Connexion</h2>
+<% if(error && error.length) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="POST" action="/login">
+<div class="form-group"><label>Nom d'utilisateur</label><input type="text" name="username" required autofocus></div>
+<div class="form-group"><label>Mot de passe</label><input type="password" name="password" required></div>
+<button type="submit" class="btn btn-primary btn-full" style="margin-top:8px">Se connecter</button>
+</form>
+<div class="auth-switch">Pas de compte ? <a href="/register">Créer un pays</a> · <a href="/guide">Guide</a></div>
+</div>
+<div class="auth-features">
+<div class="auth-feature"><div class="feat-icon">🏛</div><h3>Économie</h3><p>Budget, agriculture, industrie</p></div>
+<div class="auth-feature"><div class="feat-icon">⚔</div><h3>Guerres</h3><p>Armée et conquêtes</p></div>
+<div class="auth-feature"><div class="feat-icon">🔬</div><h3>Recherche</h3><p>5 domaines technologiques</p></div>
+<div class="auth-feature"><div class="feat-icon">🌍</div><h3>Territoire</h3><p>Terraformage et expansion</p></div>
+</div></div>
+<footer class="site-footer">Anathas — Jeu par navigateur gratuit</footer>
+</body></html>
