@@ -10,12 +10,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── DATABASE ───
-const sequelize = new Sequelize(process.env.DATABASE_URL || 'sqlite::memory:', {
-  dialect: process.env.DATABASE_URL ? 'postgres' : 'sqlite',
-  storage: process.env.DATABASE_URL ? undefined : './anathas.db',
-  logging: false,
-  dialectOptions: process.env.DATABASE_URL ? { ssl: { require: true, rejectUnauthorized: false } } : {}
-});
+let sequelize;
+if (process.env.DATABASE_URL) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    logging: false,
+    dialectOptions: { ssl: { require: true, rejectUnauthorized: false } }
+  });
+} else {
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './anathas.db',
+    logging: false
+  });
+}
 
 // ─── MODELS ───
 const User = sequelize.define('User', {
