@@ -273,6 +273,12 @@ function requireMod(req, res, next) {
 }
 
 // ─── AUTH ───
+// ─── ADS.TXT (requis pour AdSense) ───
+app.get('/ads.txt', (req, res) => {
+  res.type('text/plain');
+  res.send('google.com, pub-7302486476390124, DIRECT, f08c47fec0942fa0');
+});
+
 app.get('/', (req, res) => {
   if (req.session.userId) return res.redirect('/dashboard');
   res.render('index');
@@ -298,7 +304,7 @@ app.post('/register', async (req, res) => {
   const { username, email, password, country_name } = req.body;
   const accept_cgu = req.body.accept_cgu;
   if (!username || !email || !password || !country_name) { req.flash('error', 'Tous les champs sont obligatoires.'); return res.redirect('/register'); }
-  if (!accept_cgu) { req.flash('error', 'Vous devez accepter les conditions d'utilisation.'); return res.redirect('/register'); }
+  if (!accept_cgu) { req.flash("error", "Vous devez accepter les conditions d'utilisation."); return res.redirect("/register"); }
   if (password.length < 6) { req.flash('error', 'Mot de passe trop court (6 caractères min).'); return res.redirect('/register'); }
   if (await User.findOne({ where: { username } })) { req.flash('error', "Nom d'utilisateur déjà pris."); return res.redirect('/register'); }
   if (await User.findOne({ where: { email } })) { req.flash('error', 'Email déjà utilisé.'); return res.redirect('/register'); }
