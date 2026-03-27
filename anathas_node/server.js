@@ -37,7 +37,7 @@ const User = sequelize.define('User', {
 
 const Country = sequelize.define('Country', {
   name: { type: DataTypes.STRING(100), unique: true, allowNull: false },
-  money: { type: DataTypes.FLOAT, defaultValue: 5000 },
+  money: { type: DataTypes.FLOAT, defaultValue: 50000000 },
   agriculture: { type: DataTypes.INTEGER, defaultValue: 5 },
   industry: { type: DataTypes.INTEGER, defaultValue: 5 },
   commerce: { type: DataTypes.INTEGER, defaultValue: 5 },
@@ -84,6 +84,8 @@ const Country = sequelize.define('Country', {
   investAgri: { type: DataTypes.FLOAT, defaultValue: 0 },
   investIndustry: { type: DataTypes.FLOAT, defaultValue: 0 },
   investCommerce: { type: DataTypes.FLOAT, defaultValue: 0 },
+  turnCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  isProtected: { type: DataTypes.BOOLEAN, defaultValue: true },
   score: { type: DataTypes.FLOAT, defaultValue: 0 },
   allianceId: { type: DataTypes.INTEGER, allowNull: true }
 });
@@ -161,6 +163,34 @@ const SpyMission = sequelize.define('SpyMission', {
   missionType: { type: DataTypes.STRING(30) },
   status: { type: DataTypes.STRING(20), defaultValue: 'pending' },
   result: { type: DataTypes.TEXT, defaultValue: '' }
+});
+
+const TurnHistory = sequelize.define('TurnHistory', {
+  countryId: { type: DataTypes.INTEGER, allowNull: false },
+  turnNumber: { type: DataTypes.INTEGER, defaultValue: 0 },
+  money: { type: DataTypes.FLOAT, defaultValue: 0 },
+  income: { type: DataTypes.FLOAT, defaultValue: 0 },
+  militaryCost: { type: DataTypes.FLOAT, defaultValue: 0 },
+  population: { type: DataTypes.INTEGER, defaultValue: 0 },
+  satisfaction: { type: DataTypes.FLOAT, defaultValue: 0 },
+  pollution: { type: DataTypes.FLOAT, defaultValue: 0 }
+});
+
+const Report = sequelize.define('Report', {
+  reporterId: { type: DataTypes.INTEGER, allowNull: false },
+  targetUserId: { type: DataTypes.INTEGER, allowNull: true },
+  targetMessageId: { type: DataTypes.INTEGER, allowNull: true },
+  reason: { type: DataTypes.TEXT, allowNull: false },
+  status: { type: DataTypes.STRING(20), defaultValue: 'pending' },
+  channel: { type: DataTypes.STRING(30), defaultValue: '' }
+});
+
+const Law = sequelize.define('Law', {
+  countryId: { type: DataTypes.INTEGER, allowNull: false },
+  category: { type: DataTypes.STRING(30), allowNull: false },
+  value: { type: DataTypes.STRING(50), allowNull: false },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  effect: { type: DataTypes.TEXT, defaultValue: '' }
 });
 
 const PrivateMessage = sequelize.define('PrivateMessage', {
@@ -266,7 +296,9 @@ app.post('/login', async (req, res) => {
 app.get('/register', (req, res) => res.render('register', { error: req.flash('error') }));
 app.post('/register', async (req, res) => {
   const { username, email, password, country_name } = req.body;
+  const accept_cgu = req.body.accept_cgu;
   if (!username || !email || !password || !country_name) { req.flash('error', 'Tous les champs sont obligatoires.'); return res.redirect('/register'); }
+  if (!accept_cgu) { req.flash('error', 'Vous devez accepter les conditions d'utilisation.'); return res.redirect('/register'); }
   if (password.length < 6) { req.flash('error', 'Mot de passe trop court (6 caractères min).'); return res.redirect('/register'); }
   if (await User.findOne({ where: { username } })) { req.flash('error', "Nom d'utilisateur déjà pris."); return res.redirect('/register'); }
   if (await User.findOne({ where: { email } })) { req.flash('error', 'Email déjà utilisé.'); return res.redirect('/register'); }
@@ -350,6 +382,17 @@ app.post('/military/attack/:targetId', requireLogin, async (req, res) => {
   const c = user.Country;
   const target = await Country.findByPk(req.params.targetId, { include: User });
   if (!target || target.id === c.id) return res.redirect('/ranking');
+  // Protection nouveaux joueurs
+  if (target.isProtected) return res.redirect('/ranking');
+  // Vérification règle territoire (top 5 exempt)
+  const allCountries = await Country.findAll();
+  allCountries.sort((a,b) => b.score - a.score);
+  const top5ids = allCountries.slice(0,5).map(x => x.id);
+  if (!top5ids.includes(c.id)) {
+    const myTerr = c.plains + c.desert + c.urban;
+    const theirTerr = target.plains + target.desert + target.urban;
+    if (theirTerr < myTerr * 0.9) return res.redirect('/ranking');
+  }
   const existingWar = await War.findOne({ where: { status: 'active', attackerId: c.id } });
   if (existingWar) return res.redirect('/military');
   await War.create({ attackerId: c.id, defenderId: target.id });
@@ -653,11 +696,21 @@ app.get('/api/chat/messages', requireLogin, async (req, res) => {
   res.json(msgs.reverse().map(m => ({ id: m.id, username: m.User.username, role: m.User.role, content: m.content, time: m.createdAt.toTimeString().slice(0,5) })));
 });
 
+// Anti-spam : limite 3 messages par 10 secondes
+const chatCooldowns = new Map();
 app.post('/api/chat/send', requireLogin, async (req, res) => {
   const user = await User.findByPk(req.session.userId);
   if (user.isBanned) return res.status(403).json({ error: 'Banni' });
   const { content, channel, alliance_id } = req.body;
   if (!content || content.length > 500) return res.status(400).json({ error: 'Invalide' });
+  // Spam check
+  const now = Date.now();
+  const key = user.id;
+  if (!chatCooldowns.has(key)) chatCooldowns.set(key, []);
+  const times = chatCooldowns.get(key).filter(t => now - t < 10000);
+  if (times.length >= 3) return res.status(429).json({ error: 'Trop rapide ! Attendez quelques secondes.' });
+  times.push(now);
+  chatCooldowns.set(key, times);
   await ChatMessage.create({ userId: user.id, content, channel: channel||'general', allianceId: alliance_id ? parseInt(alliance_id) : null });
   res.json({ success: true });
 });
@@ -788,6 +841,17 @@ app.post('/admin/forum/category', requireAdmin, async (req, res) => {
   res.redirect('/admin');
 });
 
+app.post('/admin/announce', requireAdmin, async (req, res) => {
+  const { message } = req.body;
+  if (message && message.trim()) {
+    const users = await User.findAll();
+    for (const u of users) {
+      await notify(u.id, '📢 Annonce admin : ' + message.trim(), 'info');
+    }
+  }
+  res.redirect('/admin');
+});
+
 
 // ─── PROFIL ───
 app.get('/profile', requireLogin, async (req, res) => {
@@ -907,15 +971,185 @@ app.get('/api/messages/unread', requireLogin, async (req, res) => {
   res.json({ count });
 });
 
+
+// ─── STATS GLOBALES ───
+app.get('/stats', async (req, res) => {
+  const user = req.session.userId ? await User.findByPk(req.session.userId, { include: Country }) : null;
+  const unread = user ? await getUnread(user.id) : 0;
+  const totalPlayers = await User.count();
+  const totalCountries = await Country.count();
+  const richest = await Country.findOne({ order: [['money','DESC']], include: User });
+  const mostPop = await Country.findOne({ order: [['population','DESC']], include: User });
+  const strongest = await Country.findOne({ order: [['militaryPower','DESC']], include: User });
+  const topScore = await Country.findOne({ order: [['score','DESC']], include: User });
+  res.render('stats', { user, unread, currentCountry: user?.Country||null, session: req.session,
+    totalPlayers, totalCountries, richest, mostPop, strongest, topScore });
+});
+
+// ─── CLASSEMENT PUBLIC ───
+app.get('/public/ranking', async (req, res) => {
+  const countries = await Country.findAll({ include: User });
+  for (const c of countries) { c.score = computeScore(c); }
+  countries.sort((a,b) => b.score - a.score);
+  res.render('public_ranking', { countries, session: req.session||{} });
+});
+
+// ─── CGU ───
+app.get('/cgu', (req, res) => {
+  const user = null;
+  res.render('cgu', { user, unread: 0, currentCountry: null, session: req.session||{} });
+});
+
+// ─── HISTORIQUE DES TOURS ───
+app.get('/history', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const history = await TurnHistory.findAll({
+    where: { countryId: user.Country.id },
+    order: [['createdAt','DESC']], limit: 30
+  });
+  const unread = await getUnread(user.id);
+  res.render('history', { user, country: user.Country, history, unread });
+});
+
+// ─── JOURNAL DE GUERRE ───
+app.get('/warlog', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const wars = await War.findAll({
+    where: { [Sequelize.Op.or]: [{ attackerId: c.id }, { defenderId: c.id }] },
+    order: [['createdAt','DESC']], limit: 20
+  });
+  for (const w of wars) {
+    w.attacker = await Country.findByPk(w.attackerId);
+    w.defender = await Country.findByPk(w.defenderId);
+    w.battlesList = await Battle.findAll({ where: { warId: w.id }, order: [['createdAt','ASC']] });
+  }
+  const unread = await getUnread(user.id);
+  res.render('warlog', { user, country: c, wars, unread });
+});
+
+// ─── LOIS ───
+const LAW_DEFINITIONS = {
+  fiscalite: [
+    { value: 'low', name: 'Fiscalité légère', effect: 'Satisfaction +5%, Revenus -10%' },
+    { value: 'medium', name: 'Fiscalité modérée', effect: 'Aucun effet particulier' },
+    { value: 'heavy', name: 'Fiscalité lourde', effect: 'Satisfaction -5%, Revenus +15%' }
+  ],
+  liberte: [
+    { value: 'liberal', name: 'Régime libéral', effect: 'Satisfaction +8%, Commerce +10%' },
+    { value: 'moderate', name: 'Régime modéré', effect: 'Équilibré' },
+    { value: 'authoritarian', name: 'Régime autoritaire', effect: 'Satisfaction -10%, Militaire +15%' }
+  ],
+  environnement: [
+    { value: 'green', name: 'Politique verte', effect: 'Pollution -20%, Industrie -5%' },
+    { value: 'neutral', name: 'Politique neutre', effect: 'Aucun effet' },
+    { value: 'industrial', name: 'Politique industrielle', effect: 'Pollution +15%, Industrie +10%' }
+  ],
+  education: [
+    { value: 'high', name: 'Education prioritaire', effect: 'Recherche +20%, Revenus -5%' },
+    { value: 'medium', name: 'Education standard', effect: 'Équilibré' },
+    { value: 'low', name: 'Education minimale', effect: 'Recherche -10%, Revenus +5%' }
+  ]
+};
+
+app.get('/laws', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const laws = await Law.findAll({ where: { countryId: c.id } });
+  const lawsMap = {};
+  laws.forEach(l => { lawsMap[l.category] = l; });
+  const unread = await getUnread(user.id);
+  res.render('laws', { user, country: c, laws: lawsMap, lawDefs: LAW_DEFINITIONS, unread });
+});
+
+app.post('/laws/set', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const { category, value } = req.body;
+  if (!LAW_DEFINITIONS[category]) return res.redirect('/laws');
+  const lawDef = LAW_DEFINITIONS[category].find(l => l.value === value);
+  if (!lawDef) return res.redirect('/laws');
+  await Law.upsert({ countryId: c.id, category, value, name: lawDef.name, effect: lawDef.effect });
+  await notify(user.id, `⚖️ Loi ${category} modifiée : ${lawDef.name}`, 'info');
+  res.redirect('/laws');
+});
+
+// ─── SIGNALEMENT ───
+app.post('/report', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId);
+  const { target_user_id, target_message_id, reason, channel } = req.body;
+  if (!reason || !reason.trim()) return res.json({ error: 'Raison requise' });
+  await Report.create({
+    reporterId: user.id,
+    targetUserId: target_user_id ? parseInt(target_user_id) : null,
+    targetMessageId: target_message_id ? parseInt(target_message_id) : null,
+    reason: reason.trim(),
+    channel: channel || ''
+  });
+  // Notifier les admins/modos
+  const mods = await User.findAll({ where: { role: ['admin','moderator'] } });
+  for (const m of mods) {
+    await notify(m.id, `🚨 Signalement reçu de ${user.username} : ${reason.trim().substring(0,50)}`, 'info');
+  }
+  res.json({ success: true });
+});
+
+app.get('/admin/reports', requireMod, async (req, res) => {
+  const user = await User.findByPk(req.session.userId);
+  const reports = await Report.findAll({ order: [['createdAt','DESC']], limit: 50 });
+  for (const r of reports) {
+    r.reporter = await User.findByPk(r.reporterId);
+    r.targetUser = r.targetUserId ? await User.findByPk(r.targetUserId) : null;
+  }
+  const unread = await getUnread(user.id);
+  const currentCountry = await Country.findOne({ where: { userId: user.id } });
+  res.render('admin_reports', { user, reports, unread, currentCountry, session: req.session });
+});
+
+app.post('/admin/reports/resolve/:id', requireMod, async (req, res) => {
+  const report = await Report.findByPk(req.params.id);
+  if (report) { report.status = 'resolved'; await report.save(); }
+  res.json({ success: true });
+});
+
+// ─── TUTORIEL ───
+app.get('/tutorial', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const unread = await getUnread(user.id);
+  res.render('tutorial', { user, country: user.Country, unread });
+});
+
 // ─── TOUR ENGINE ───
 async function processTurn() {
   const countries = await Country.findAll();
   for (const c of countries) {
     const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
 
+    // Appliquer les effets des lois
+    const countryLaws = await Law.findAll({ where: { countryId: c.id } });
+    const lawEffects = { satisfBonus: 0, incomeMulti: 1, industryMulti: 1, researchMulti: 1, pollutionMulti: 1 };
+    countryLaws.forEach(l => {
+      if (l.category === 'fiscalite') {
+        if (l.value === 'low') { lawEffects.satisfBonus += 5; lawEffects.incomeMulti *= 0.9; }
+        if (l.value === 'heavy') { lawEffects.satisfBonus -= 5; lawEffects.incomeMulti *= 1.15; }
+      }
+      if (l.category === 'liberte') {
+        if (l.value === 'liberal') { lawEffects.satisfBonus += 8; lawEffects.industryMulti *= 1.1; }
+        if (l.value === 'authoritarian') { lawEffects.satisfBonus -= 10; }
+      }
+      if (l.category === 'environnement') {
+        if (l.value === 'green') { lawEffects.pollutionMulti *= 0.8; lawEffects.industryMulti *= 0.95; }
+        if (l.value === 'industrial') { lawEffects.pollutionMulti *= 1.15; lawEffects.industryMulti *= 1.1; }
+      }
+      if (l.category === 'education') {
+        if (l.value === 'high') { lawEffects.researchMulti *= 1.2; lawEffects.incomeMulti *= 0.95; }
+        if (l.value === 'low') { lawEffects.researchMulti *= 0.9; lawEffects.incomeMulti *= 1.05; }
+      }
+    });
+
     // Revenus de base
     const agriIncome = Math.round(c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
-    const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total));
+    const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total) * lawEffects.industryMulti);
     const commerceIncome = c.isBlockaded ? 0 : Math.round(c.commerce * 60 * (c.budgetIndustry / total));
     const popTax = Math.round(c.population * 0.001);
     const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
@@ -942,23 +1176,37 @@ async function processTurn() {
     c.health = Math.min(100, Math.max(0, (c.budgetHealth / total) * 100 * (1 + c.techHealth * 0.1)));
     const jobs = c.industry * 500 + c.commerce * 300;
     c.employment = Math.min(100, Math.max(0, (jobs / Math.max(c.population, 1)) * 100));
-    c.satisfaction = Math.min(100, Math.max(0, (c.food / 100 + c.health / 100 + c.employment / 100) / 3 * 100));
+    c.satisfaction = Math.min(100, Math.max(0, ((c.food / 100 + c.health / 100 + c.employment / 100) / 3 * 100) + lawEffects.satisfBonus));
     const growthRate = c.satisfaction >= 50 ? 0.002 : -0.001;
     c.population = Math.max(1000, Math.round(c.population * (1 + growthRate)));
 
     // Pollution
-    c.pollution = Math.max(0, Math.min(100, c.pollution + c.industry * 0.5 + c.population * 0.00001 - c.forests * 0.1 - c.techIndustry * 0.5));
+    c.pollution = Math.max(0, Math.min(100, c.pollution + (c.industry * 0.5 + c.population * 0.00001) * lawEffects.pollutionMulti - c.forests * 0.1 - c.techIndustry * 0.5));
     // CC naturels toutes les 8 tours (approx 4 jours)
     if (Math.random() < 0.125) c.carbonCredits += 1;
 
     // Recherche
-    const researchBudget = c.money * (c.budgetResearch / total) * 0.02;
+    const researchBudget = c.money * (c.budgetResearch / total) * 0.02 * lawEffects.researchMulti;
     c.researchPoints = (c.researchPoints || 0) + researchBudget;
     const totalAlloc = c.allocAgriculture + c.allocMilitary + c.allocIndustry + c.allocHealth + c.allocEspionage || 100;
     ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
       c[`rp${d}`] = (c[`rp${d}`] || 0) + researchBudget * (c[`alloc${d}`] / totalAlloc);
     });
 
+    c.turnCount = (c.turnCount || 0) + 1;
+    // Protection nouveaux joueurs : retiree après 5 tours
+    if (c.turnCount >= 5) c.isProtected = false;
+    // Sauvegarder historique du tour
+    await TurnHistory.create({
+      countryId: c.id,
+      turnNumber: c.turnCount,
+      money: Math.round(c.money),
+      income: Math.round(totalIncome),
+      militaryCost: Math.round(militaryCost),
+      population: c.population,
+      satisfaction: Math.round(c.satisfaction * 10) / 10,
+      pollution: Math.round(c.pollution * 100) / 100
+    });
     c.militaryPower = computeMilitaryPower(c);
     c.score = computeScore(c);
     await c.save();

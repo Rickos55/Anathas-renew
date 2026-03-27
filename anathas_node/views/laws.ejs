@@ -1,0 +1,28 @@
+<%- include('partials/header', {title:'Lois', session, unread, currentCountry}) %>
+<h1 class="page-title">⚖ Lois de <%= country.name %></h1>
+<p style="color:var(--text-dim);margin-bottom:14px;font-size:13px">Les lois définissent les politiques de votre pays et ont des effets sur votre économie et votre population.</p>
+<div class="two-col">
+<% Object.entries(lawDefs).forEach(([cat, options]) => { const current = laws[cat]; %>
+<div class="section-card"><div class="section-header"><span class="section-title">
+<%= cat==='fiscalite'?'💰 Fiscalité':cat==='liberte'?'🏛 Régime politique':cat==='environnement'?'🌱 Environnement':'📚 Éducation' %>
+</span></div><div class="section-body">
+<% if(current) { %><div class="alert alert-info" style="margin-bottom:10px">Actuel : <strong><%= current.name %></strong> — <%= current.effect %></div><% } %>
+<form method="POST" action="/laws/set">
+<input type="hidden" name="category" value="<%= cat %>">
+<% options.forEach(opt => { %>
+<div style="margin-bottom:8px;padding:8px 10px;border:1px solid var(--border);border-radius:4px;background:<%= current && current.value===opt.value ? 'var(--cyan-light)' : 'white' %>">
+<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+<input type="radio" name="value" value="<%= opt.value %>" <%= current && current.value===opt.value ? 'checked' : '' %> style="width:auto;margin-top:2px">
+<div>
+<strong><%= opt.name %></strong>
+<div style="font-size:12px;color:var(--text-dim)"><%= opt.effect %></div>
+</div>
+</label>
+</div>
+<% }) %>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:6px">Appliquer</button>
+</form>
+</div></div>
+<% }) %>
+</div>
+<%- include('partials/footer') %>

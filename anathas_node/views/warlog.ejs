@@ -1,0 +1,34 @@
+<%- include('partials/header', {title:'Journal de guerre', session, unread, currentCountry}) %>
+<h1 class="page-title">⚔ Journal de Guerre — <%= country.name %></h1>
+<% if(!wars.length) { %>
+<div class="section-card"><div class="section-body"><p style="color:var(--text-dim)">Aucune guerre dans votre historique.</p></div></div>
+<% } %>
+<% wars.forEach(w => { const isAttacker = w.attackerId === country.id; const enemy = isAttacker ? w.defender : w.attacker; %>
+<div class="section-card" style="margin-bottom:14px;border-left-color:<%= w.status==='active'?'var(--red)':'var(--border-left)' %>">
+<div class="section-header">
+<span class="section-title"><%= isAttacker?'⚔ Attaque':'🛡 Défense' %> — <%= enemy ? enemy.name : '?' %></span>
+<span style="margin-left:auto;font-size:12px;padding:2px 8px;border-radius:3px;background:<%= w.status==='active'?'var(--red)':w.status==='peace'?'var(--green)':'var(--border)' %>;color:white">
+<%= w.status==='active'?'En cours':w.status==='peace'?'Paix':'Terminée' %>
+</span>
+</div>
+<div class="section-body">
+<div class="stat-row"><span class="stat-label">Territoire transféré</span><span class="stat-value <%= w.territoryTransferred>0?'good':'bad' %>"><%= w.territoryTransferred %> km²</span></div>
+<div class="stat-row"><span class="stat-label">Nombre de batailles</span><span class="stat-value"><%= w.battlesList.length %></span></div>
+<% if(w.battlesList.length) { %>
+<table class="data-table" style="margin-top:8px">
+<thead><tr><th>Bataille</th><th>Force att.</th><th>Force déf.</th><th>Résultat</th><th>Territoire</th></tr></thead>
+<tbody>
+<% w.battlesList.forEach(b => { %>
+<tr>
+<td>#<%= b.turnNumber %></td>
+<td><%= b.attackerPower %></td>
+<td><%= b.defenderPower %></td>
+<td class="<%= b.result==='attacker_wins'?'good':'bad' %>"><%= b.result==='attacker_wins'?'Victoire att.':'Victoire déf.' %></td>
+<td>+<%= b.territoryGained %> km²</td>
+</tr>
+<% }) %>
+</tbody></table>
+<% } %>
+</div></div>
+<% }) %>
+<%- include('partials/footer') %>

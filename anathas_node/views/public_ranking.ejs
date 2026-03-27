@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Classement — Anathas</title>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7302486476390124" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/style.css"></head><body>
+<header class="site-header"><div class="header-inner">
+<div class="site-logo" style="margin:0 auto">ANATHAS</div>
+</div></header>
+<div class="info-bar"><div class="info-bar-inner" style="justify-content:center">
+<span>Classement public · <a href="/login">Se connecter</a> · <a href="/register">S'inscrire gratuitement</a></span>
+</div></div>
+<div class="main-wrapper">
+<h1 class="page-title">🏆 Classement des Nations</h1>
+<div class="section-card"><div class="section-body" style="padding:0">
+<table class="data-table"><thead><tr><th>#</th><th>Pays</th><th>Dirigeant</th><th>Population</th><th>Score</th></tr></thead>
+<tbody>
+<% countries.slice(0,20).forEach((c,i) => { %>
+<tr class="<%= i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'' %>">
+<td class="rank-num"><%= i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1 %></td>
+<td class="country-name-cell"><%= c.name %></td>
+<td><%= c.User ? c.User.username : '?' %></td>
+<td><%= c.population.toLocaleString('fr-FR') %></td>
+<td style="font-weight:bold;color:var(--teal)"><%= Math.round(c.score) %></td>
+</tr>
+<% }) %>
+</tbody></table>
+</div></div>
+<div style="text-align:center;margin-top:20px;padding:20px;background:white;border:1px solid var(--border);border-radius:4px">
+<h3 style="color:var(--teal);margin-bottom:8px">Vous voulez figurer dans ce classement ?</h3>
+<p style="margin-bottom:14px;color:var(--text-dim)">Anathas est un jeu de gestion multijoueur gratuit. Créez votre pays et dominez le monde !</p>
+<a href="/register" class="btn btn-primary" style="margin-right:8px">Créer mon pays gratuitement</a>
+<a href="/guide" class="btn btn-secondary">Voir le guide</a>
+</div>
+</div>
+<footer class="site-footer">Anathas — Jeu par navigateur gratuit · <a href="/cgu">CGU</a></footer>
+</body></html>

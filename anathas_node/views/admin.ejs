@@ -1,54 +1,147 @@
 <%- include('partials/header', {title:'Administration', session, unread, currentCountry}) %>
 <h1 class="page-title">⚙ Panneau d'administration</h1>
+<div style="margin-bottom:14px"><a href="/admin/reports" class="btn btn-danger btn-sm">🚨 Voir les signalements</a></div>
+
+<!-- STATS GLOBALES -->
 <div class="admin-stats">
-<div class="admin-stat"><div class="admin-stat-val"><%= users.length %></div><div class="admin-stat-lbl">Joueurs</div></div>
-<div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.isBanned).length %></div><div class="admin-stat-lbl">Bannis</div></div>
-<div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.role==='moderator').length %></div><div class="admin-stat-lbl">Modérateurs</div></div>
+  <div class="admin-stat"><div class="admin-stat-val"><%= users.length %></div><div class="admin-stat-lbl">Joueurs</div></div>
+  <div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.isBanned).length %></div><div class="admin-stat-lbl">Bannis</div></div>
+  <div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.role==='moderator').length %></div><div class="admin-stat-lbl">Modérateurs</div></div>
+  <div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.role==='admin').length %></div><div class="admin-stat-lbl">Admins</div></div>
+  <div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.Country).length %></div><div class="admin-stat-lbl">Pays créés</div></div>
 </div>
 
-<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">⚙ Moteur de tours</span></div><div class="section-body">
-<p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Tours automatiques planifiés à 10h et 20h UTC. Déclenchez manuellement si besoin.</p>
-<button class="btn btn-primary" onclick="fetch('/admin/run_turn',{method:'POST'}).then(r=>r.json()).then(d=>{document.getElementById('tr').textContent=d.message;document.getElementById('tr').style.color='var(--green)'})">▶ Déclencher un tour maintenant</button>
-<span id="tr" style="margin-left:12px"></span>
+<!-- ACTIONS RAPIDES -->
+<div class="two-col" style="margin-bottom:14px">
+
+  <div class="section-card"><div class="section-header"><span class="section-title">⚙ Moteur de tours</span></div><div class="section-body">
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Tours automatiques à 10h et 20h UTC. Déclenchez manuellement si besoin.</p>
+    <button class="btn btn-primary" onclick="runTurn()">▶ Déclencher un tour maintenant</button>
+    <span id="turn-msg" style="margin-left:10px;font-size:13px"></span>
+  </div></div>
+
+  <div class="section-card"><div class="section-header"><span class="section-title">📜 Nouvelle catégorie forum</span></div><div class="section-body">
+    <form method="POST" action="/admin/forum/category" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0"><label>Nom</label><input type="text" name="name" required style="width:160px"></div>
+      <div class="form-group" style="margin:0"><label>Description</label><input type="text" name="description" style="width:200px"></div>
+      <div style="display:flex;align-items:center;gap:5px;padding-top:20px"><input type="checkbox" name="is_official"><label style="font-size:12px">Officiel</label></div>
+      <button type="submit" class="btn btn-primary btn-sm" style="margin-top:20px">Créer</button>
+    </form>
+  </div></div>
+
+</div>
+
+<!-- ANNONCE GLOBALE -->
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📢 Envoyer une annonce à tous les joueurs</span></div><div class="section-body">
+  <form method="POST" action="/admin/announce" style="display:flex;gap:8px;align-items:flex-end">
+    <div class="form-group" style="flex:1;margin:0"><label>Message d'annonce</label><input type="text" name="message" required placeholder="Ex: Maintenance prévue ce soir à 22h..."></div>
+    <button type="submit" class="btn btn-primary">📢 Envoyer à tous</button>
+  </form>
 </div></div>
 
-<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📜 Ajouter catégorie forum</span></div><div class="section-body">
-<form method="POST" action="/admin/forum/category" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-<div class="form-group" style="margin:0"><label>Nom</label><input type="text" name="name" required style="width:180px"></div>
-<div class="form-group" style="margin:0"><label>Description</label><input type="text" name="description" style="width:220px"></div>
-<div style="display:flex;align-items:center;gap:6px;padding-top:18px"><input type="checkbox" name="is_official"><label>Officiel</label></div>
-<button type="submit" class="btn btn-primary btn-sm" style="margin-top:18px">Créer</button>
-</form>
-</div></div>
-
-<div class="section-card"><div class="section-header"><span class="section-title">👥 Gestion des joueurs</span></div><div class="section-body" style="padding:0">
-<table class="data-table">
-<thead><tr><th>ID</th><th>Joueur</th><th>Pays</th><th>Rôle</th><th>Score</th><th>Statut</th><th>Actions</th></tr></thead>
+<!-- GESTION DES JOUEURS -->
+<div class="section-card"><div class="section-header"><span class="section-title">👥 Gestion des joueurs</span></div>
+<div style="padding:8px 14px;background:var(--bg-section);border-bottom:1px solid var(--border)">
+  <input type="text" id="search-player" placeholder="Rechercher un joueur..." style="width:280px" oninput="filterPlayers(this.value)">
+</div>
+<div class="section-body" style="padding:0;overflow-x:auto">
+<table class="data-table" id="players-table">
+<thead><tr>
+  <th>ID</th><th>Joueur</th><th>Email</th><th>Pays</th><th>Argent</th><th>Score</th>
+  <th>Rôle</th><th>Statut</th><th>Inscrit</th><th>Actions</th>
+</tr></thead>
 <tbody>
 <% users.forEach(u => { %>
-<tr class="<%= u.isBanned?'banned-row':'' %>">
-<td><%= u.id %></td>
-<td><strong><%= u.username %></strong></td>
-<td><%= u.Country ? u.Country.name : '—' %></td>
-<td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
-<td style="color:var(--teal)"><%= u.Country ? Math.round(u.Country.score) : 0 %></td>
-<td><%= u.isBanned?'<span class="badge-banned">Banni</span>':'<span class="badge-active">Actif</span>' %></td>
-<td class="actions-cell">
-<% if(u.id !== session.userId) { %>
-<select class="role-select" onchange="fetch('/admin/set_role/'+<%=u.id%>+'/'+this.value,{method:'POST'}).then(()=>location.reload())">
-<option value="player" <%=u.role==='player'?'selected':''%>>Joueur</option>
-<option value="moderator" <%=u.role==='moderator'?'selected':''%>>Modérateur</option>
-<option value="admin" <%=u.role==='admin'?'selected':''%>>Admin</option>
-</select>
-<button class="btn btn-sm <%=u.isBanned?'btn-success':'btn-danger'%>" onclick="fetch('/admin/ban/'+<%=u.id%>,{method:'POST'}).then(()=>location.reload())"><%=u.isBanned?'Débannir':'Bannir'%></button>
-<% if(u.Country) { %>
-<a href="/admin/country/<%= u.Country.id %>" class="btn btn-sm btn-secondary">✏️ Modifier pays</a>
-<% } %>
-<% } %>
-</td>
+<tr class="player-row <%= u.isBanned?'banned-row':'' %>" data-name="<%= u.username.toLowerCase() %>" data-country="<%= u.Country ? u.Country.name.toLowerCase() : '' %>">
+  <td style="font-size:11px;color:var(--text-dim)"><%= u.id %></td>
+  <td><strong><%= u.username %></strong></td>
+  <td style="font-size:11px;color:var(--text-dim)"><%= u.email %></td>
+  <td class="country-name-cell"><%= u.Country ? u.Country.name : '<em style="color:var(--text-dim)">—</em>' %></td>
+  <td style="color:var(--teal);font-size:12px"><%= u.Country ? Math.round(u.Country.money).toLocaleString('fr-FR') + ' §' : '—' %></td>
+  <td style="color:var(--teal);font-weight:bold"><%= u.Country ? Math.round(u.Country.score) : 0 %></td>
+  <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
+  <td><%= u.isBanned ? '<span class="badge-banned">Banni</span>' : '<span class="badge-active">Actif</span>' %></td>
+  <td style="font-size:11px;color:var(--text-dim)"><%= new Date(u.createdAt).toLocaleDateString('fr-FR') %></td>
+  <td class="actions-cell" style="white-space:nowrap">
+    <% if(u.id !== session.userId) { %>
+    <select class="role-select" onchange="setRole(<%= u.id %>, this.value)" title="Changer le rôle">
+      <option value="player" <%= u.role==='player'?'selected':'' %>>Joueur</option>
+      <option value="moderator" <%= u.role==='moderator'?'selected':'' %>>Modérateur</option>
+      <option value="admin" <%= u.role==='admin'?'selected':'' %>>Admin</option>
+    </select>
+    <button class="btn btn-sm <%= u.isBanned?'btn-success':'btn-danger' %>"
+      onclick="toggleBan(<%= u.id %>, this)" title="<%= u.isBanned?'Débannir':'Bannir' %>">
+      <%= u.isBanned?'✅':'🚫' %>
+    </button>
+    <% if(u.Country) { %>
+    <a href="/admin/country/<%= u.Country.id %>" class="btn btn-sm btn-secondary" title="Modifier le pays">✏️</a>
+    <button class="btn btn-sm btn-secondary" onclick="sendMsg(<%= u.id %>, '<%= u.username %>')" title="Envoyer un message">✉️</button>
+    <% } %>
+    <% } else { %>
+    <span style="color:var(--text-dim);font-size:12px">(vous)</span>
+    <% } %>
+  </td>
 </tr>
 <% }) %>
 </tbody>
 </table>
 </div></div>
+
+<!-- MODAL MESSAGE -->
+<div id="msg-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:6px;padding:24px;max-width:500px;width:90%">
+    <h3 style="margin-bottom:12px;color:var(--teal)">✉️ Envoyer un message à <span id="msg-target-name"></span></h3>
+    <form method="POST" action="/messages/send">
+      <input type="hidden" name="to_user_id" id="msg-target-id">
+      <div class="form-group"><textarea name="content" rows="5" required placeholder="Votre message..." style="width:100%"></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button type="submit" class="btn btn-primary">Envoyer</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('msg-modal').style.display='none'">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+async function runTurn() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ En cours...';
+  const r = await fetch('/admin/run_turn', {method:'POST'});
+  const d = await r.json();
+  document.getElementById('turn-msg').textContent = d.message;
+  document.getElementById('turn-msg').style.color = 'var(--green)';
+  btn.disabled = false;
+  btn.textContent = '▶ Déclencher un tour maintenant';
+}
+
+async function setRole(userId, role) {
+  const r = await fetch('/admin/set_role/'+userId+'/'+role, {method:'POST'});
+  const d = await r.json();
+  if(d.success) { location.reload(); }
+}
+
+async function toggleBan(userId, btn) {
+  const r = await fetch('/admin/ban/'+userId, {method:'POST'});
+  const d = await r.json();
+  if(d.success) location.reload();
+}
+
+function sendMsg(userId, username) {
+  document.getElementById('msg-target-id').value = userId;
+  document.getElementById('msg-target-name').textContent = username;
+  const modal = document.getElementById('msg-modal');
+  modal.style.display = 'flex';
+}
+
+function filterPlayers(val) {
+  const rows = document.querySelectorAll('.player-row');
+  val = val.toLowerCase();
+  rows.forEach(r => {
+    const name = r.dataset.name || '';
+    const country = r.dataset.country || '';
+    r.style.display = (name.includes(val) || country.includes(val)) ? '' : 'none';
+  });
+}
+</script>
 <%- include('partials/footer') %>

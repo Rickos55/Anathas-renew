@@ -1,0 +1,25 @@
+<%- include('partials/header', {title:'Historique', session, unread, currentCountry}) %>
+<h1 class="page-title">📜 Historique des tours — <%= country.name %></h1>
+<div class="section-card"><div class="section-body" style="padding:0">
+<% if(history.length) { %>
+<table class="data-table">
+<thead><tr><th>Tour</th><th>Argent</th><th>Revenus</th><th>Coût mil.</th><th>Bilan</th><th>Population</th><th>Satisfaction</th><th>Pollution</th><th>Date</th></tr></thead>
+<tbody>
+<% history.forEach(h => { const bilan = h.income - h.militaryCost; %>
+<tr>
+<td style="font-weight:bold">#<%= h.turnNumber %></td>
+<td><%= Math.round(h.money).toLocaleString('fr-FR') %> §</td>
+<td class="good">+<%= Math.round(h.income).toLocaleString('fr-FR') %> §</td>
+<td class="bad">-<%= Math.round(h.militaryCost).toLocaleString('fr-FR') %> §</td>
+<td class="<%= bilan>=0?'good':'bad' %>"><%= bilan>=0?'+':'' %><%= Math.round(bilan).toLocaleString('fr-FR') %> §</td>
+<td><%= h.population.toLocaleString('fr-FR') %></td>
+<td class="<%= h.satisfaction>=60?'good':h.satisfaction>=40?'gold':'bad' %>"><%= h.satisfaction %>%</td>
+<td class="<%= h.pollution<=30?'good':h.pollution<=60?'gold':'bad' %>"><%= h.pollution %></td>
+<td style="font-size:11px;color:var(--text-dim)"><%= new Date(h.createdAt).toLocaleString('fr-FR') %></td>
+</tr>
+<% }) %>
+</tbody>
+</table>
+<% } else { %><p style="padding:14px;color:var(--text-dim)">Aucun historique. Les données apparaîtront après le premier tour.</p><% } %>
+</div></div>
+<%- include('partials/footer') %>

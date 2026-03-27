@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title><%- title %> — Anathas</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title><%- title %> — Anathas</title><link rel="stylesheet" href="/css/style.css">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7302486476390124" crossorigin="anonymous"></script>
+</head><body>
 <header class="site-header"><div class="header-inner">
 <div class="header-side">
 <a href="/profile" class="header-icon-btn"><div class="icon-circle">👤</div><span>Mon Profil</span></a>
@@ -26,7 +28,7 @@
 <span class="nav-sep">•</span>
 <a href="/market" class="nav-item">Marchés</a>
 <a href="/military" class="nav-item">Guerres</a>
-<a href="/diplomacy" class="nav-item">Diplomatie</a>
+<a href="/diplomacy" class="nav-item">Diplomatie</a><a href="/laws" class="nav-item">Lois</a>
 </div></nav>
 <nav class="nav-secondary"><div class="nav-inner">
 <a href="/forum" class="nav-item">Forum</a>
@@ -36,6 +38,6 @@
 <a href="/alliances" class="nav-item">Alliances</a>
 <span class="nav-sep">•</span>
 <% if(typeof session !== 'undefined' && ['admin','moderator'].includes(session.role)){ %><a href="/admin" class="nav-item nav-admin-link">Admin</a><span class="nav-sep">•</span><% } %>
-<a href="/logout" class="nav-item">Déconnexion</a>
+<a href="/stats" class="nav-item">Statistiques</a><span class="nav-sep">•</span><a href="/logout" class="nav-item">Déconnexion</a>
 </div></nav>
 <div class="main-wrapper">

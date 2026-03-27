@@ -1,0 +1,52 @@
+<%- include('partials/header', {title:'Tutoriel', session, unread, currentCountry}) %>
+<h1 class="page-title">🎓 Tutoriel — Premiers pas dans Anathas</h1>
+<div class="sidebar-layout">
+<div class="guide-toc"><h3>Étapes</h3>
+<a href="#step1">1. Comprendre le jeu</a>
+<a href="#step2">2. Gérer son économie</a>
+<a href="#step3">3. Développer son armée</a>
+<a href="#step4">4. La recherche</a>
+<a href="#step5">5. La diplomatie</a>
+<a href="#step6">6. Les lois</a>
+<a href="#step7">7. Conseils</a>
+</div>
+<div class="section-card"><div class="section-body">
+<div class="guide-section" id="step1"><h2>1. Comprendre le jeu</h2>
+<p>Anathas est un jeu de gestion multijoueur. Vous dirigez un pays fictif et devez le développer face à d'autres joueurs.</p>
+<p>Le jeu avance par <strong>tours</strong>, déclenchés automatiquement <strong>2 fois par jour</strong> (10h et 20h UTC). À chaque tour, vos revenus sont calculés, votre population évolue et vos technologies progressent.</p>
+<div class="guide-tip">💡 Vous n'avez pas besoin d'être connecté 24h/24. Revenez 2 fois par jour pour prendre vos décisions.</div>
+</div>
+<div class="guide-section" id="step2"><h2>2. Gérer son économie</h2>
+<p>Sur votre <strong>tableau de bord</strong>, vous voyez vos revenus par tour. Ils viennent de :</p>
+<ul><li>🌾 <strong>Agriculture</strong> : nourrit la population, génère des revenus</li>
+<li>🏭 <strong>Industrie</strong> : principale source de revenus</li>
+<li>🛒 <strong>Commerce</strong> : revenus supplémentaires (coupé si blocus)</li></ul>
+<p>Répartissez votre <strong>budget d'état</strong> entre les 5 secteurs (total = 100%). Plus vous investissez dans un secteur, plus les niveaux montent automatiquement.</p>
+<div class="guide-tip">💡 Pour commencer : 25% agriculture, 30% industrie, 20% santé, 15% militaire, 10% recherche.</div>
+</div>
+<div class="guide-section" id="step3"><h2>3. Développer son armée</h2>
+<p>Dans la section <strong>Guerres</strong>, vous pouvez recruter des unités militaires. Chaque unité a un coût et une puissance :</p>
+<ul><li>🪖 Infanterie (10§) — puissance 1</li><li>🚗 Blindés (500§) — puissance 8</li><li>✈️ Aviation (1000§) — puissance 15</li></ul>
+<div class="guide-tip">⚠️ Vous êtes protégé contre les attaques pendant vos 5 premiers tours. Profitez-en pour vous développer !</div>
+</div>
+<div class="guide-section" id="step4"><h2>4. La recherche technologique</h2>
+<p>Dans la section <strong>Technologie</strong>, allouez votre budget de recherche entre 5 domaines. Des points s'accumulent à chaque tour et vous pouvez débloquer des niveaux manuellement.</p>
+</div>
+<div class="guide-section" id="step5"><h2>5. La diplomatie</h2>
+<p>Rejoignez une <strong>alliance</strong> pour vous protéger et coordonner vos actions. Vous pouvez aussi espionner, imposer des blocus ou commercer.</p>
+</div>
+<div class="guide-section" id="step6"><h2>6. Les lois</h2>
+<p>Dans la section <strong>Lois</strong>, choisissez les politiques de votre pays (fiscalité, régime, environnement, éducation). Chaque loi a des effets sur votre économie et satisfaction.</p>
+</div>
+<div class="guide-section" id="step7"><h2>7. Conseils de départ</h2>
+<ul>
+<li>Commencez par équilibrer votre budget à 20% partout</li>
+<li>Rejoignez une alliance dès que possible</li>
+<li>Ne déclarez pas la guerre trop tôt</li>
+<li>Consultez l'historique des tours pour analyser vos progrès</li>
+<li>Lisez les projections sur votre dashboard avant de changer votre budget</li>
+</ul>
+<div class="guide-tip">🎯 Objectif : avoir le meilleur score en combinant richesse, population, territoire et technologie !</div>
+</div>
+</div></div></div>
+<%- include('partials/footer') %>

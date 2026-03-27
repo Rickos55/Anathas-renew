@@ -1,0 +1,22 @@
+<%- include('partials/header', {title:'Statistiques', session, unread, currentCountry}) %>
+<h1 class="page-title">📊 Statistiques du jeu</h1>
+<div class="three-col" style="margin-bottom:14px">
+<div class="admin-stat"><div class="admin-stat-val"><%= totalPlayers %></div><div class="admin-stat-lbl">Joueurs inscrits</div></div>
+<div class="admin-stat"><div class="admin-stat-val"><%= totalCountries %></div><div class="admin-stat-lbl">Nations</div></div>
+<div class="admin-stat"><div class="admin-stat-val">2x/jour</div><div class="admin-stat-lbl">Tours par jour</div></div>
+</div>
+<div class="two-col">
+<div class="section-card"><div class="section-header"><span class="section-title">🏆 Records</span></div><div class="section-body">
+<% if(richest) { %><div class="stat-row"><span class="stat-label">💰 Plus riche</span><span class="stat-value teal"><%= richest.name %> (<%= Math.round(richest.money/1e6) %> M§)</span></div><% } %>
+<% if(mostPop) { %><div class="stat-row"><span class="stat-label">👥 Plus peuplé</span><span class="stat-value teal"><%= mostPop.name %> (<%= mostPop.population.toLocaleString('fr-FR') %>)</span></div><% } %>
+<% if(strongest) { %><div class="stat-row"><span class="stat-label">⚔ Plus puissant</span><span class="stat-value teal"><%= strongest.name %> (<%= Math.round(strongest.militaryPower) %>)</span></div><% } %>
+<% if(topScore) { %><div class="stat-row"><span class="stat-label">🌟 Meilleur score</span><span class="stat-value teal"><%= topScore.name %> (<%= Math.round(topScore.score) %>)</span></div><% } %>
+</div></div>
+<div class="section-card"><div class="section-header"><span class="section-title">ℹ️ À propos du jeu</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Fréquence des tours</span><span class="stat-value">10h et 20h UTC</span></div>
+<div class="stat-row"><span class="stat-label">Durée d'une saison</span><span class="stat-value">À définir</span></div>
+<div class="stat-row"><span class="stat-label">Protection nouveaux joueurs</span><span class="stat-value">5 premiers tours</span></div>
+<div class="stat-row"><span class="stat-label">Version</span><span class="stat-value">Bêta 1.0</span></div>
+</div></div>
+</div>
+<%- include('partials/footer') %>
