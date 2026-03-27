@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Guide — Anathas</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<% if(user) { %><%- include('partials/header', {title:'Guide', session: {userId:user.id, username:user.username, role:user.role}, unread, currentCountry}) %><% } else { %>
+<header class="site-header"><div class="header-inner"><a href="/" class="site-logo">ANATHAS</a></div></header><div class="main-wrapper"><% } %>
+<h1 class="page-title">📖 Anapédia — Guide du joueur</h1>
+<div class="sidebar-layout">
+<div class="guide-toc"><h3>Sommaire</h3>
+<a href="#debut">🚀 Débuter</a><a href="#economie">💰 Économie</a><a href="#militaire">⚔ Militaire</a>
+<a href="#technologie">🔬 Technologie</a><a href="#diplomatie">🤝 Diplomatie</a><a href="#marche">🏪 Marchés</a>
+<a href="#territoire">🗺 Territoire</a><a href="#classement">🏆 Classement</a>
+</div>
+<div class="section-card"><div class="section-body">
+<div class="guide-section" id="debut"><h2>🚀 Débuter dans Anathas</h2>
+<p>Bienvenue ! Vous dirigez une nation. Le jeu avance par <strong>tours</strong> (2x/jour). À chaque tour : revenus calculés, population qui évolue, recherches qui progressent.</p>
+<div class="guide-tip">💡 Commencez par équilibrer votre budget à 20% par secteur.</div>
+</div>
+<div class="guide-section" id="economie"><h2>💰 Économie</h2>
+<p>Trois piliers : <strong>Agriculture</strong> (×50/tour), <strong>Industrie</strong> (×80/tour), <strong>Commerce</strong> (×60/tour, annulé si blocus).</p>
+<p>Répartissez 100% du budget entre les 5 secteurs. La répartition influence directement vos revenus.</p>
+</div>
+<div class="guide-section" id="militaire"><h2>⚔ Militaire</h2>
+<ul><li>🪖 Infanterie (10§) : puissance 1</li><li>🚗 Blindés (500§) : puissance 8</li><li>✈️ Aviation (1000§) : puissance 15</li><li>⚓ Marine (800§) : puissance 10</li><li>🚀 Missiles (1500§) : puissance 20</li><li>🎖 Forces spéciales (2000§) : puissance 25</li></ul>
+<p>Pour attaquer : le pays cible doit avoir au moins <strong>90% de votre territoire</strong>. Top 5 : pas de restriction.</p>
+</div>
+<div class="guide-section" id="technologie"><h2>🔬 Technologie</h2>
+<p>5 domaines : Agriculture (+15%/niv), Militaire (+10%/niv), Industrie (+15%/niv), Médecine (+10%/niv), Espionnage (+10%/niv).</p>
+<p>Allouez votre budget de recherche. Accumulez des points. Débloquez manuellement chaque niveau.</p>
+<div class="guide-tip">Coût d'un niveau = 50 × (niveau actuel + 1)</div>
+</div>
+<div class="guide-section" id="diplomatie"><h2>🤝 Diplomatie &amp; Espionnage</h2>
+<ul><li>Blocus économique : coupe les revenus commerciaux</li><li>Révéler les stats (200§) : voir les chiffres d'un ennemi</li><li>Voler de l'argent (500§) : jusqu'à 5% de sa trésorerie</li><li>Saboter armée (1000§) ou industrie (800§)</li></ul>
+</div>
+<div class="guide-section" id="marche"><h2>🏪 Marchés</h2>
+<p>Échangez : Argent, Crédits Carbone, Points de Recherche, Territoire. Publiez une offre ou acceptez celle d'un autre joueur.</p>
+</div>
+<div class="guide-section" id="territoire"><h2>🗺 Territoire</h2>
+<ul><li>Irriguer un désert (300§) → plaine</li><li>Urbaniser une plaine (500§) → zone urbaine</li><li>Reboiser un désert (200§) → forêts, réduit la pollution</li></ul>
+</div>
+<div class="guide-section" id="classement"><h2>🏆 Classement</h2>
+<p>Score = Argent×0.0001 + Population×0.00001 + Militaire×0.05 + Tech×10 + Territoire×0.5. Pas de victoire définitive, le classement évolue en permanence.</p>
+</div>
+</div></div></div>
+<footer class="site-footer">Anathas — Guide du joueur</footer><script src="/js/main.js"></script></body></html>

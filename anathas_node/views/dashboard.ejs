@@ -1,0 +1,45 @@
+<%- include('partials/header', {title: country.name, session, unread, currentCountry}) %>
+<h1 class="page-title">Économie &amp; Gestion</h1>
+<div class="two-col">
+<div>
+<div class="section-card"><div class="section-header"><span class="section-title">💰 Trésorerie</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Argent</span><span class="stat-value teal"><%= (country.money/1e9).toFixed(3) %> G$</span></div>
+<div class="stat-row"><span class="stat-label">Agriculture</span><span class="stat-value">Niv. <%= country.agriculture %></span></div>
+<div class="stat-row"><span class="stat-label">Industrie</span><span class="stat-value">Niv. <%= country.industry %></span></div>
+<div class="stat-row"><span class="stat-label">Commerce</span><span class="stat-value">Niv. <%= country.commerce %><% if(country.isBlockaded){ %> <span class="badge-banned">BLOQUÉ</span><% } %></span></div>
+<div class="stat-row"><span class="stat-label">Pollution</span><span class="stat-value <%= country.pollution<=30?'good':country.pollution<=60?'gold':'bad' %>"><%= country.pollution.toFixed(2) %></span></div>
+</div></div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📊 Budget de l'État</span></div><div class="section-body">
+<form method="POST" action="/budget" class="budget-form">
+<div class="budget-grid">
+<% [['agriculture','🌾 Agriculture'],['industry','🏭 Industrie'],['health','🏥 Santé'],['military','⚔ Militaire'],['research','🔬 Recherche']].forEach(([k,l]) => { %>
+<div class="budget-item"><label><%= l %></label><input type="number" name="budget_<%= k %>" value="<%= Math.round(country['budget'+k.charAt(0).toUpperCase()+k.slice(1)]) %>" min="0" max="100"><span class="budget-pct">%</span></div>
+<% }) %>
+</div>
+<button type="submit" class="btn btn-primary btn-sm">Valider</button>
+</form>
+</div></div>
+</div>
+<div>
+<div class="section-card"><div class="section-header"><span class="section-title">👥 Population</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Population</span><span class="stat-value teal"><%= country.population.toLocaleString('fr-FR') %> hab.</span></div>
+<div class="stat-row"><span class="stat-label">Satisfaction</span><span class="stat-value <%= country.satisfaction>=60?'good':country.satisfaction>=40?'gold':'bad' %>"><%= country.satisfaction.toFixed(1) %>%</span></div>
+<div class="progress-bar"><div class="progress-fill <%= country.satisfaction>=60?'progress-green':country.satisfaction>=40?'progress-gold':'progress-red' %>" style="width:<%= country.satisfaction %>%"></div></div>
+<div class="stat-row"><span class="stat-label">Nourriture</span><span class="stat-value"><%= country.food.toFixed(1) %>%</span></div>
+<div class="stat-row"><span class="stat-label">Santé</span><span class="stat-value"><%= country.health.toFixed(1) %>%</span></div>
+<div class="stat-row"><span class="stat-label">Emploi</span><span class="stat-value"><%= country.employment.toFixed(1) %>%</span></div>
+</div></div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">⚔ Militaire</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Puissance</span><span class="stat-value teal"><%= Math.round(country.militaryPower) %></span></div>
+<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Forces spéciales']].forEach(([k,l]) => { %>
+<div class="stat-row"><span class="stat-label"><%= l %></span><span class="stat-value"><%= country[k] %></span></div>
+<% }) %>
+</div></div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🏆 Score</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Score global</span><span class="stat-value teal" style="font-size:16px;font-weight:bold"><%= Math.round(country.score) %></span></div>
+<div class="stat-row"><span class="stat-label">Territoire</span><span class="stat-value"><%= country.plains+country.desert+country.urban %> régions</span></div>
+<div class="stat-row"><span class="stat-label">Alliance</span><span class="stat-value"><%= alliance ? alliance.name : '—' %></span></div>
+<div class="stat-row"><span class="stat-label">Crédits carbone</span><span class="stat-value"><%= country.carbonCredits %> CC</span></div>
+</div></div>
+</div></div>
+<%- include('partials/footer') %>

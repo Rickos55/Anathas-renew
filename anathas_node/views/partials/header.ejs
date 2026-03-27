@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title><%- title %> — Anathas</title><link rel="stylesheet" href="/css/style.css"></head><body>
+<header class="site-header"><div class="header-inner">
+<div class="header-side">
+<a href="/dashboard" class="header-icon-btn"><div class="icon-circle">👤</div><span>Mon Profil</span></a>
+<a href="/notifications" class="header-icon-btn"><div class="icon-circle">ℹ️<% if(unread>0){ %><span class="icon-badge"><%= unread %></span><% } %></div><span>Notifications</span></a>
+<a href="/chat" class="header-icon-btn"><div class="icon-circle">✉️</div><span>Messagerie</span></a>
+</div>
+<a href="/dashboard" class="site-logo">ANATHAS</a>
+<div class="header-side">
+<a href="/ranking" class="header-icon-btn"><div class="icon-circle">👥</div><span>Connectés</span></a>
+<a href="/guide" class="header-icon-btn"><div class="icon-circle">📖</div><span>Anapédia</span></a>
+<a href="/alliances" class="header-icon-btn"><div class="icon-circle">🛡️</div><span>Alliances</span></a>
+</div>
+</div></header>
+<% if(typeof currentCountry !== 'undefined' && currentCountry){ %>
+<div class="info-bar"><div class="info-bar-inner">
+<span><%= currentCountry.population.toLocaleString('fr-FR') %> citoyens</span>
+<span class="info-country"><%= session.username %> de <%= currentCountry.name %></span>
+<span><%= (currentCountry.money/1e9).toFixed(3) %> G$</span>
+</div></div>
+<% } %>
+<nav class="nav-primary"><div class="nav-inner">
+<a href="/dashboard" class="nav-item">Economie</a>
+<a href="/research" class="nav-item">Technologie</a>
+<a href="/territory" class="nav-item">Territoire</a>
+<span class="nav-sep">•</span>
+<a href="/market" class="nav-item">Marchés</a>
+<a href="/military" class="nav-item">Guerres</a>
+<a href="/diplomacy" class="nav-item">Diplomatie</a>
+</div></nav>
+<nav class="nav-secondary"><div class="nav-inner">
+<a href="/forum" class="nav-item">Forum</a>
+<a href="/chat" class="nav-item">Shoutbox</a>
+<span class="nav-sep">•</span>
+<a href="/ranking" class="nav-item">Classement</a>
+<a href="/alliances" class="nav-item">Alliances</a>
+<span class="nav-sep">•</span>
+<% if(['admin','moderator'].includes(session.role)){ %><a href="/admin" class="nav-item nav-admin-link">Admin</a><span class="nav-sep">•</span><% } %>
+<a href="/logout" class="nav-item">Déconnexion</a>
+</div></nav>
+<div class="main-wrapper">

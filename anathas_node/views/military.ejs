@@ -1,0 +1,48 @@
+<%- include('partials/header', {title:'Militaire', session, unread, currentCountry}) %>
+<h1 class="page-title">Forces Armées de <%= country.name %></h1>
+<% if(war) { %><div class="war-banner"><span class="war-vs">⚔ GUERRE EN COURS ⚔</span><br>
+<% if(warDetails) { %><strong><%= warDetails.enemy ? warDetails.enemy.name : '?' %></strong> — Territoire transféré : <%= war.territoryTransferred %> km²<% } %>
+</div><% } %>
+<div class="two-col">
+<div class="section-card"><div class="section-header"><span class="section-title">💪 Puissance : <%= Math.round(country.militaryPower) %></span></div><div class="section-body">
+<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Forces spéciales']].forEach(([k,l]) => { %>
+<div class="stat-row"><span class="stat-label"><%= l %></span><span class="stat-value"><%= country[k] %></span></div>
+<% }) %>
+</div></div>
+<div class="section-card"><div class="section-header"><span class="section-title">🪖 Recrutement</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Trésorerie : <strong><%= (country.money/1e9).toFixed(3) %> G$</strong></p>
+<div class="recruit-grid">
+<% [['infantry','🪖 Infanterie','10 §'],['tanks','🚗 Blindés','500 §'],['aviation','✈️ Aviation','1000 §'],['navy','⚓ Marine','800 §'],['missiles','🚀 Missiles','1500 §'],['special_forces','🎖 Sp. spéciales','2000 §']].forEach(([k,l,c2]) => { %>
+<div class="recruit-item"><label><%= l %></label><small><%= c2 %>/unité</small>
+<form method="POST" action="/military/recruit" class="recruit-row">
+<input type="hidden" name="unit_type" value="<%= k %>">
+<input type="number" name="quantity" min="1" value="1" class="recruit-qty">
+<button type="submit" class="btn btn-sm btn-primary">+</button>
+</form></div>
+<% }) %>
+</div>
+</div></div>
+</div>
+<% if(war && warDetails) { %>
+<div class="section-card" style="border-color:var(--red)"><div class="section-header"><span class="section-title">⚔ Combat</span></div><div class="section-body">
+<% if(war.attackerId === country.id) { %>
+<form method="POST" action="/military/send">
+<div class="units-send-grid">
+<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Sp. spéciales']].forEach(([k,l]) => { %>
+<div class="unit-send-item"><label><%= l %> (<%= country[k] %> dispo.)</label><input type="number" name="<%= k %>" min="0" max="<%= country[k] %>" value="0"></div>
+<% }) %>
+</div>
+<button type="submit" class="btn btn-danger">⚔ Lancer l'assaut</button>
+</form>
+<% } %>
+<% if(warDetails.battles && warDetails.battles.length) { %>
+<table class="data-table" style="margin-top:12px"><thead><tr><th>Tour</th><th>Att.</th><th>Déf.</th><th>Résultat</th><th>Territoire</th></tr></thead><tbody>
+<% warDetails.battles.forEach(b => { %><tr><td>#<%= b.turnNumber %></td><td><%= b.attackerPower %></td><td><%= b.defenderPower %></td><td class="<%= b.result==='attacker_wins'?'good':'bad' %>"><%= b.result==='attacker_wins'?'Victoire att.':'Victoire déf.' %></td><td>+<%= b.territoryGained %> km²</td></tr><% }) %>
+</tbody></table>
+<% } %>
+<form method="POST" action="/military/peace/<%= war.id %>" style="margin-top:12px"><button type="submit" class="btn btn-secondary" onclick="return confirm('Demander la paix ?')">🕊 Demander la paix</button></form>
+</div></div>
+<% } else { %>
+<div class="section-card"><div class="section-body"><p style="color:var(--text-dim);font-size:13px">Vous n'êtes pas en guerre. Attaquez depuis le <a href="/ranking">classement</a>.</p></div></div>
+<% } %>
+<%- include('partials/footer') %>
