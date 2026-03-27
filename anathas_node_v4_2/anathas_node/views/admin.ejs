@@ -1,0 +1,54 @@
+<%- include('partials/header', {title:'Administration', session, unread, currentCountry}) %>
+<h1 class="page-title">⚙ Panneau d'administration</h1>
+<div class="admin-stats">
+<div class="admin-stat"><div class="admin-stat-val"><%= users.length %></div><div class="admin-stat-lbl">Joueurs</div></div>
+<div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.isBanned).length %></div><div class="admin-stat-lbl">Bannis</div></div>
+<div class="admin-stat"><div class="admin-stat-val"><%= users.filter(u=>u.role==='moderator').length %></div><div class="admin-stat-lbl">Modérateurs</div></div>
+</div>
+
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">⚙ Moteur de tours</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Tours automatiques planifiés à 10h et 20h UTC. Déclenchez manuellement si besoin.</p>
+<button class="btn btn-primary" onclick="fetch('/admin/run_turn',{method:'POST'}).then(r=>r.json()).then(d=>{document.getElementById('tr').textContent=d.message;document.getElementById('tr').style.color='var(--green)'})">▶ Déclencher un tour maintenant</button>
+<span id="tr" style="margin-left:12px"></span>
+</div></div>
+
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📜 Ajouter catégorie forum</span></div><div class="section-body">
+<form method="POST" action="/admin/forum/category" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+<div class="form-group" style="margin:0"><label>Nom</label><input type="text" name="name" required style="width:180px"></div>
+<div class="form-group" style="margin:0"><label>Description</label><input type="text" name="description" style="width:220px"></div>
+<div style="display:flex;align-items:center;gap:6px;padding-top:18px"><input type="checkbox" name="is_official"><label>Officiel</label></div>
+<button type="submit" class="btn btn-primary btn-sm" style="margin-top:18px">Créer</button>
+</form>
+</div></div>
+
+<div class="section-card"><div class="section-header"><span class="section-title">👥 Gestion des joueurs</span></div><div class="section-body" style="padding:0">
+<table class="data-table">
+<thead><tr><th>ID</th><th>Joueur</th><th>Pays</th><th>Rôle</th><th>Score</th><th>Statut</th><th>Actions</th></tr></thead>
+<tbody>
+<% users.forEach(u => { %>
+<tr class="<%= u.isBanned?'banned-row':'' %>">
+<td><%= u.id %></td>
+<td><strong><%= u.username %></strong></td>
+<td><%= u.Country ? u.Country.name : '—' %></td>
+<td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
+<td style="color:var(--teal)"><%= u.Country ? Math.round(u.Country.score) : 0 %></td>
+<td><%= u.isBanned?'<span class="badge-banned">Banni</span>':'<span class="badge-active">Actif</span>' %></td>
+<td class="actions-cell">
+<% if(u.id !== session.userId) { %>
+<select class="role-select" onchange="fetch('/admin/set_role/'+<%=u.id%>+'/'+this.value,{method:'POST'}).then(()=>location.reload())">
+<option value="player" <%=u.role==='player'?'selected':''%>>Joueur</option>
+<option value="moderator" <%=u.role==='moderator'?'selected':''%>>Modérateur</option>
+<option value="admin" <%=u.role==='admin'?'selected':''%>>Admin</option>
+</select>
+<button class="btn btn-sm <%=u.isBanned?'btn-success':'btn-danger'%>" onclick="fetch('/admin/ban/'+<%=u.id%>,{method:'POST'}).then(()=>location.reload())"><%=u.isBanned?'Débannir':'Bannir'%></button>
+<% if(u.Country) { %>
+<a href="/admin/country/<%= u.Country.id %>" class="btn btn-sm btn-secondary">✏️ Modifier pays</a>
+<% } %>
+<% } %>
+</td>
+</tr>
+<% }) %>
+</tbody>
+</table>
+</div></div>
+<%- include('partials/footer') %>

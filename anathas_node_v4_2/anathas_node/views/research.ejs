@@ -1,0 +1,26 @@
+<%- include('partials/header', {title:'Recherche', session, unread, currentCountry}) %>
+<h1 class="page-title">Recherche &amp; Technologie</h1>
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📊 Allocation de recherche</span></div><div class="section-body">
+<form method="POST" action="/research/allocate" class="budget-form">
+<div class="budget-grid">
+<% techInfo.forEach(t => { %>
+<div class="budget-item"><label><%= {agriculture:'🌾 Agriculture',military:'⚔ Militaire',industry:'🏭 Industrie',health:'🏥 Médecine',espionage:'🕵 Espionnage'}[t.domain] %></label>
+<input type="number" name="alloc_<%= t.domain %>" value="<%= t.alloc %>" min="0" max="100"><span class="budget-pct">%</span></div>
+<% }) %>
+</div><button type="submit" class="btn btn-primary btn-sm">Valider</button>
+</form></div></div>
+<div class="three-col">
+<% techInfo.forEach(t => { %>
+<div class="tech-card"><span class="tech-level-badge">Niveau <%= t.level %></span>
+<strong><%= {agriculture:'🌾 Agriculture',military:'⚔ Militaire',industry:'🏭 Industrie',health:'🏥 Médecine',espionage:'🕵 Espionnage'}[t.domain] %></strong>
+<p class="tech-bonus-text">+<%= t.level * 10 %>% bonus actuel</p>
+<div class="stat-row"><span class="stat-label">Points</span><span class="stat-value gold"><%= t.rp %> / <%= t.cost %></span></div>
+<div class="progress-bar"><div class="progress-fill progress-cyan" style="width:<%= t.progress %>%"></div></div>
+<form method="POST" action="/research/unlock/<%= t.domain %>" style="margin-top:8px">
+<button type="submit" class="btn btn-sm btn-primary <%= t.rp < t.cost ? 'btn-disabled' : '' %>" <%= t.rp < t.cost ? 'disabled' : '' %>>
+<%= t.rp >= t.cost ? '✅ Débloquer niv.' + (t.level+1) : t.progress + '% — ' + (t.cost - t.rp).toFixed(1) + ' pts' %>
+</button></form>
+</div>
+<% }) %>
+</div>
+<%- include('partials/footer') %>
