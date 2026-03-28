@@ -1,7 +1,7 @@
 <%- include('partials/header', {title:'Classement', session, unread, currentCountry}) %>
 <h1 class="page-title">Classement des Nations</h1>
 <div class="section-card"><div class="section-body" style="padding:0">
-<table class="data-table"><thead><tr><th>#</th><th>Pays</th><th>Dirigeant</th><th>Alliance</th><th>Population</th><th>Argent</th><th>Territoire</th><th>Militaire</th><th>Score</th><th>⚔</th></tr></thead>
+<table class="data-table"><thead><tr><th>#</th><th>Pays</th><th>Dirigeant</th><th>Alliance</th><th>Population</th><th>PIB/an</th><th>Territoire</th><th>Militaire</th><th>Score</th><th>⚔</th></tr></thead>
 <tbody>
 <% countries.forEach((c,i) => { %>
 <tr class="<%= i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'' %> <%= c.userId===session.userId?'my-row':'' %>">
@@ -10,7 +10,7 @@
 <td><%= c.User ? c.User.username : '?' %></td>
 <td><%= c.allianceName || '—' %></td>
 <td><%= c.population.toLocaleString('fr-FR') %></td>
-<td><%= (c.money/1e9).toFixed(2) %> G$</td>
+<td><%= c.gdp ? (c.gdp/1e9).toFixed(2)+' G$' : (c.money/1e9).toFixed(2)+' G$' %></td>
 <td><%= c.plains+c.desert+c.urban %></td>
 <td><%= Math.round(c.militaryPower) %></td>
 <td style="font-weight:bold;color:var(--teal)"><%= Math.round(c.score) %></td>

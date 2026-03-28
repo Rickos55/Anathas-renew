@@ -37,7 +37,7 @@ const User = sequelize.define('User', {
 
 const Country = sequelize.define('Country', {
   name: { type: DataTypes.STRING(100), unique: true, allowNull: false },
-  money: { type: DataTypes.FLOAT, defaultValue: 50000000 },
+  money: { type: DataTypes.FLOAT, defaultValue: 500000000 },
   agriculture: { type: DataTypes.INTEGER, defaultValue: 5 },
   industry: { type: DataTypes.INTEGER, defaultValue: 5 },
   commerce: { type: DataTypes.INTEGER, defaultValue: 5 },
@@ -46,9 +46,9 @@ const Country = sequelize.define('Country', {
   employment: { type: DataTypes.FLOAT, defaultValue: 70 },
   health: { type: DataTypes.FLOAT, defaultValue: 50 },
   food: { type: DataTypes.FLOAT, defaultValue: 50 },
-  plains: { type: DataTypes.INTEGER, defaultValue: 80 },
-  desert: { type: DataTypes.INTEGER, defaultValue: 15 },
-  urban: { type: DataTypes.INTEGER, defaultValue: 5 },
+  plains: { type: DataTypes.INTEGER, defaultValue: 16000 },
+  desert: { type: DataTypes.INTEGER, defaultValue: 3000 },
+  urban: { type: DataTypes.INTEGER, defaultValue: 1000 },
   forests: { type: DataTypes.INTEGER, defaultValue: 20 },
   pollution: { type: DataTypes.FLOAT, defaultValue: 5 },
   carbonCredits: { type: DataTypes.INTEGER, defaultValue: 10 },
@@ -81,6 +81,7 @@ const Country = sequelize.define('Country', {
   budgetMilitary: { type: DataTypes.FLOAT, defaultValue: 20 },
   budgetResearch: { type: DataTypes.FLOAT, defaultValue: 20 },
   isBlockaded: { type: DataTypes.BOOLEAN, defaultValue: false },
+  gdp: { type: DataTypes.FLOAT, defaultValue: 0 },
   investAgri: { type: DataTypes.FLOAT, defaultValue: 0 },
   investIndustry: { type: DataTypes.FLOAT, defaultValue: 0 },
   investCommerce: { type: DataTypes.FLOAT, defaultValue: 0 },
@@ -216,10 +217,22 @@ function computeMilitaryPower(c) {
   return (c.infantry * 1 + c.tanks * 8 + c.aviation * 15 + c.navy * 10 + c.missiles * 20 + c.specialForces * 25) * techBonus;
 }
 
+function computeGDP(c) {
+  // PIB = revenus annualisés (2 tours/jour * 365 jours)
+  const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
+  const popM = c.population / 1000000;
+  const agri = popM * 500 * c.agriculture * (1 + (c.techAgriculture||0) * 0.15) * (c.budgetAgriculture / total);
+  const ind  = popM * 800 * c.industry    * (1 + (c.techIndustry||0)    * 0.15) * (c.budgetIndustry / total);
+  const com  = c.isBlockaded ? 0 : popM * 300 * c.commerce * (c.budgetIndustry / total);
+  const tax  = c.population * 0.1;
+  return Math.round((agri + ind + com + tax) * 730); // annualisé
+}
+
 function computeScore(c) {
   const tech = c.techAgriculture + c.techMilitary + c.techIndustry + c.techHealth + c.techEspionage;
   const territory = c.plains + c.desert + c.urban;
-  return Math.round(c.money * 0.0001 + c.population * 0.00001 + c.militaryPower * 0.05 + tech * 10 + territory * 0.5);
+  const gdp = computeGDP(c);
+  return Math.round(c.money * 0.000001 + c.population * 0.0001 + c.militaryPower * 0.5 + tech * 100 + territory * 0.01 + gdp * 0.000001);
 }
 
 function techCost(level) { return 50 * (level + 1); }
@@ -978,6 +991,17 @@ app.get('/api/messages/unread', requireLogin, async (req, res) => {
 });
 
 
+// ─── FINANCES PUBLIQUES ───
+app.get('/finances', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  c.gdp = computeGDP(c);
+  await c.save();
+  const projections = computeProjections(c);
+  const unread = await getUnread(user.id);
+  res.render('finances', { user, country: c, projections, unread });
+});
+
 // ─── STATS GLOBALES ───
 app.get('/stats', async (req, res) => {
   const user = req.session.userId ? await User.findByPk(req.session.userId, { include: Country }) : null;
@@ -1246,32 +1270,35 @@ function scheduleturns() {
 
 // ─── PROJECTIONS ───
 function computeProjections(c) {
-  const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
-  const agriIncome = Math.round(c.agriculture * 50 * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
-  const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total));
-  const commerceIncome = c.isBlockaded ? 0 : Math.round(c.commerce * 60 * (c.budgetIndustry / total));
-  const popTax = Math.round(c.population * 0.001);
-  const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
-  const incomeTotal = agriIncome + industryIncome + commerceIncome + popTax;
-  const moneyDelta = incomeTotal - militaryCost;
+  const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
+  const popM = c.population / 1000000;
+  const agriIncome     = Math.round(popM * 500 * c.agriculture * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
+  const industryIncome = Math.round(popM * 800 * c.industry    * (1 + c.techIndustry    * 0.15) * (c.budgetIndustry    / total));
+  const commerceIncome = c.isBlockaded ? 0 : Math.round(popM * 300 * c.commerce * (c.budgetIndustry / total));
+  const popTax         = Math.round(c.population * 0.1);
+  const militaryCost   = Math.round(c.infantry * 2 + c.tanks * 20 + c.aviation * 50 + c.navy * 35 + c.missiles * 80 + c.specialForces * 100);
+  const incomeTotal    = agriIncome + industryIncome + commerceIncome + popTax;
+  const moneyDelta     = incomeTotal - militaryCost;
 
-  const foodProd = c.agriculture * 1000 * (1 + c.techAgriculture * 0.1);
-  const nextFood = Math.min(100, Math.max(0, (foodProd / Math.max(c.population, 1)) * 50));
-  const nextHealth = Math.min(100, Math.max(0, (c.budgetHealth / total) * 100 * (1 + c.techHealth * 0.1)));
-  const jobs = c.industry * 500 + c.commerce * 300;
-  const nextEmploy = Math.min(100, Math.max(0, (jobs / Math.max(c.population, 1)) * 100));
-  const nextSatisf = Math.min(100, Math.max(0, (nextFood / 100 + nextHealth / 100 + nextEmploy / 100) / 3 * 100));
-  const growthRate = nextSatisf >= 50 ? 0.002 : -0.001;
-  const popDelta = Math.round(c.population * growthRate);
-  const pollDelta = Math.round(((c.industry * 0.5 + c.population * 0.00001) - (c.forests * 0.1 + c.techIndustry * 0.5)) * 100) / 100;
-  const researchIncome = Math.round(c.money * (c.budgetResearch / total) * 0.01 * 10) / 10;
+  const foodProd  = c.agriculture * 5000 * (1 + c.techAgriculture * 0.1);
+  const nextFood  = Math.min(100, Math.max(0, (foodProd / Math.max(c.population, 1)) * 100));
+  const nextHealth= Math.min(100, Math.max(0, (c.budgetHealth / total) * 100 * (1 + c.techHealth * 0.1)));
+  const employCapacity = (c.industry * 0.02 + c.commerce * 0.01 + c.agriculture * 0.01) * 100;
+  const nextEmploy= Math.min(100, Math.max(0, employCapacity));
+  const nextSatisf= Math.min(100, Math.max(0, nextFood * 0.35 + nextHealth * 0.35 + nextEmploy * 0.30));
+  const growthRate= nextSatisf >= 60 ? 0.003 : nextSatisf >= 40 ? 0.001 : -0.002;
+  const popDelta  = Math.round(c.population * growthRate);
+  const pollDelta = Math.round(((c.industry * 0.3 + c.population * 0.000005) - (c.forests * 0.05 + c.techIndustry * 0.8)) * 100) / 100;
+  const researchIncome = 10 + Math.round((c.budgetResearch / total) * 50);
 
   return {
     agriIncome, industryIncome, commerceIncome, popTax, militaryCost,
     moneyDelta, income: incomeTotal,
     popDelta,
     satisfDelta: Math.round((nextSatisf - c.satisfaction) * 10) / 10,
-    pollDelta, researchIncome
+    pollDelta, researchIncome,
+    nextFood: Math.round(nextFood), nextHealth: Math.round(nextHealth),
+    nextEmploy: Math.round(nextEmploy), nextSatisf: Math.round(nextSatisf)
   };
 }
 
