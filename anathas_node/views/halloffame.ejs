@@ -1,0 +1,30 @@
+<%- include('partials/header', {title:'Hall of Fame', session, unread, currentCountry}) %>
+<h1 class="page-title">🏆 Hall of Fame</h1>
+<% if(activeSeason) { %>
+<div class="alert alert-info" style="margin-bottom:14px">🎮 Saison <%= activeSeason.number %> en cours depuis <%= new Date(activeSeason.startDate).toLocaleDateString('fr-FR') %></div>
+<% } %>
+<% if(!hallOfFame.length) { %>
+<div class="section-card"><div class="section-body"><p style="color:var(--text-dim)">Aucune saison terminée pour l'instant. Le Hall of Fame se remplira à la fin de la première saison !</p></div></div>
+<% } %>
+<% let currentSeasonId = null; hallOfFame.forEach((h, i) => {
+  if (h.seasonId !== currentSeasonId) {
+    currentSeasonId = h.seasonId;
+    const season = seasons.find(s => s.id === h.seasonId);
+%>
+<div class="section-card" style="margin-bottom:14px">
+<div class="section-header"><span class="section-title">🏆 Saison <%= season ? season.number : h.seasonId %> <%= season && season.winner ? '— Vainqueur : '+season.winner : '' %></span></div>
+<div class="section-body" style="padding:0">
+<table class="data-table"><thead><tr><th>#</th><th>Pays</th><th>Dirigeant</th><th>Score</th><th>PIB</th><th>Population</th></tr></thead><tbody>
+<% } %>
+<tr class="<%= h.rank===1?'rank-1':h.rank===2?'rank-2':h.rank===3?'rank-3':'' %>">
+<td class="rank-num"><%= h.rank===1?'🥇':h.rank===2?'🥈':h.rank===3?'🥉':h.rank %></td>
+<td class="country-name-cell"><%= h.countryName %></td>
+<td><%= h.playerName %></td>
+<td style="font-weight:bold;color:var(--teal)"><%= Math.round(h.score).toLocaleString('fr-FR') %></td>
+<td><%= h.gdp ? (h.gdp/1e9).toFixed(2)+' G$' : '—' %></td>
+<td><%= h.population.toLocaleString('fr-FR') %></td>
+</tr>
+<% if(i === hallOfFame.length-1 || hallOfFame[i+1].seasonId !== currentSeasonId) { %>
+</tbody></table></div></div>
+<% } }) %>
+<%- include('partials/footer') %>

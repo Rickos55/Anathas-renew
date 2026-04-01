@@ -1,0 +1,26 @@
+<%- include('partials/header', {title:'Conversation', session, unread, currentCountry}) %>
+<h1 class="page-title">✉️ Conversation avec <%= targetUser.username %></h1>
+<div style="max-width:700px;margin:0 auto">
+<div class="section-card" style="margin-bottom:14px"><div class="section-body" style="padding:0;max-height:400px;overflow-y:auto">
+<% if(thread.length) { thread.forEach(m => { const isMe = m.fromUserId === user.id; %> 
+<div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;background:<%= isMe?'#f0fbff':'white' %>">
+<div style="display:flex;justify-content:space-between;margin-bottom:4px">
+<strong style="color:<%= isMe?'var(--teal)':'var(--text)' %>"><%= isMe ? 'Vous' : targetUser.username %></strong>
+<small style="color:var(--text-dim)"><%= new Date(m.createdAt).toLocaleString('fr-FR') %></small>
+</div>
+<p style="font-size:13px;white-space:pre-wrap"><%= m.content %></p>
+</div>
+<% }) } else { %><p style="padding:14px;color:var(--text-dim)">Aucun message échangé.</p><% } %>
+</div></div>
+<div class="section-card"><div class="section-header"><span class="section-title">✍️ Répondre</span></div><div class="section-body">
+<form method="POST" action="/messages/send">
+<input type="hidden" name="to_user_id" value="<%= targetUser.id %>">
+<div class="form-group"><textarea name="content" rows="4" required placeholder="Votre message..." maxlength="2000"></textarea></div>
+<div style="display:flex;gap:8px">
+<button type="submit" class="btn btn-primary">Envoyer</button>
+<a href="/messages" class="btn btn-secondary">← Retour</a>
+</div>
+</form>
+</div></div>
+</div>
+<%- include('partials/footer') %>

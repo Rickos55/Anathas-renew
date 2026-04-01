@@ -1,0 +1,21 @@
+<%- include('partials/header', {title:'Logs Admin', session, unread, currentCountry}) %>
+<h1 class="page-title">📋 Logs d'administration</h1>
+<div class="section-card"><div class="section-body" style="padding:0">
+<% if(logs.length) { %>
+<table class="data-table">
+<thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Cible</th><th>Détails</th></tr></thead>
+<tbody>
+<% logs.forEach(l => { %>
+<tr>
+<td style="font-size:11px;white-space:nowrap"><%= new Date(l.createdAt).toLocaleString('fr-FR') %></td>
+<td><strong><%= l.admin ? l.admin.username : '?' %></strong></td>
+<td><span class="badge badge-moderator"><%= l.action %></span></td>
+<td><%= l.targetId || '—' %></td>
+<td style="font-size:12px"><%= l.details %></td>
+</tr>
+<% }) %>
+</tbody></table>
+<% } else { %><p style="padding:14px;color:var(--text-dim)">Aucun log.</p><% } %>
+</div></div>
+<a href="/admin" class="btn btn-secondary">← Retour admin</a>
+<%- include('partials/footer') %>

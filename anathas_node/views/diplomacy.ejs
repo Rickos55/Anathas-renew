@@ -30,4 +30,28 @@
 </form>
 </div></div>
 </div>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🔬 Accords de recherche</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Un accord de recherche mutuel donne +10% de points de recherche aux deux pays.</p>
+<form method="POST" action="/diplomacy/research_agreement">
+<div style="display:flex;gap:8px;align-items:flex-end">
+<div class="form-group" style="flex:1;margin:0"><label>Pays partenaire</label><select name="target_id">
+<% countries.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+</select></div>
+<button type="submit" class="btn btn-primary">Proposer</button>
+</div>
+</form>
+<% if(typeof researchAgreements !== 'undefined' && researchAgreements.length) { %>
+<hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">
+<% researchAgreements.forEach(a => { %>
+<div class="stat-row">
+<span><%= a.partner ? a.partner.name : '?' %></span>
+<span class="<%= a.status==='active'?'badge-active':'badge-banned' %>"><%= a.status==='active'?'✅ Actif':'⏳ En attente' %></span>
+<% if(a.status==='pending' && a.countryBId === country.id) { %>
+<form method="POST" action="/diplomacy/research_agreement/accept/<%= a.id %>" style="display:inline"><button class="btn btn-sm btn-success">Accepter</button></form>
+<form method="POST" action="/diplomacy/research_agreement/reject/<%= a.id %>" style="display:inline"><button class="btn btn-sm btn-danger">Refuser</button></form>
+<% } %>
+</div>
+<% }) %>
+<% } %>
+</div></div>
 <%- include('partials/footer') %>

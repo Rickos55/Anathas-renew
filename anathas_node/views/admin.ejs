@@ -1,6 +1,6 @@
 <%- include('partials/header', {title:'Administration', session, unread, currentCountry}) %>
 <h1 class="page-title">⚙ Panneau d'administration</h1>
-<div style="margin-bottom:14px"><a href="/admin/reports" class="btn btn-danger btn-sm">🚨 Voir les signalements</a></div>
+<div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap"><a href="/admin/reports" class="btn btn-danger btn-sm">🚨 Signalements</a><a href="/admin/logs" class="btn btn-secondary btn-sm">📋 Logs admin</a></div>
 
 <!-- STATS GLOBALES -->
 <div class="admin-stats">
@@ -16,7 +16,8 @@
 
   <div class="section-card"><div class="section-header"><span class="section-title">⚙ Moteur de tours</span></div><div class="section-body">
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Tours automatiques à 10h et 20h UTC. Déclenchez manuellement si besoin.</p>
-    <button class="btn btn-primary" onclick="runTurn()">▶ Déclencher un tour maintenant</button>
+    <button class="btn btn-primary" onclick="runTurn()">▶ Déclencher un tour</button>
+    <button class="btn btn-danger" style="margin-left:8px" onclick="if(confirm('Terminer la saison ? Cette action est irréversible !'))fetch('/admin/end_season',{method:'POST'}).then(r=>r.json()).then(d=>alert(d.message||d.error))">🏁 Terminer la saison</button>
     <span id="turn-msg" style="margin-left:10px;font-size:13px"></span>
   </div></div>
 

@@ -6,7 +6,7 @@
 <% countries.forEach((c,i) => { %>
 <tr class="<%= i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'' %> <%= c.userId===session.userId?'my-row':'' %>">
 <td class="rank-num"><%= i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1 %></td>
-<td class="country-name-cell"><%= c.name %><%= c.isBlockaded?' 🚫':'' %></td>
+<td class="country-name-cell"><a href="/country/<%= c.id %>"><%= c.name %></a><%= c.isBlockaded?' 🚫':'' %></td>
 <td><%= c.User ? c.User.username : '?' %></td>
 <td><%= c.allianceName || '—' %></td>
 <td><%= c.population.toLocaleString('fr-FR') %></td>

@@ -1,0 +1,30 @@
+<%- include('partials/header', {title:'Journal d\'événements', session, unread, currentCountry}) %>
+<h1 class="page-title">📜 Journal d'Événements</h1>
+<% if(worldEvents.length) { %>
+<div class="section-card" style="margin-bottom:14px;border-left-color:var(--gold)">
+<div class="section-header"><span class="section-title">🌍 Événements mondiaux actifs</span></div>
+<div class="section-body">
+<% worldEvents.forEach(ev => { %>
+<div style="padding:8px 0;border-bottom:1px solid #f0f0f0">
+<strong><%= ev.title %></strong> — <%= ev.description %>
+<span style="float:right;font-size:11px;color:var(--text-dim)"><%= ev.turnsRemaining %> tour(s) restant(s)</span>
+</div>
+<% }) %>
+</div></div>
+<% } %>
+<div class="section-card"><div class="section-header"><span class="section-title">📋 Votre journal</span></div><div class="section-body" style="padding:0">
+<% if(events.length) { %>
+<table class="data-table">
+<thead><tr><th>Date</th><th>Type</th><th>Événement</th></tr></thead>
+<tbody>
+<% events.forEach(e => { %>
+<tr>
+<td style="white-space:nowrap;font-size:11px"><%= new Date(e.createdAt).toLocaleString('fr-FR') %></td>
+<td><span class="badge badge-<%= e.eventType==='war'?'admin':e.eventType==='spy'?'moderator':'player' %>"><%= e.eventType %></span></td>
+<td><%= e.message %></td>
+</tr>
+<% }) %>
+</tbody></table>
+<% } else { %><p style="padding:14px;color:var(--text-dim)">Aucun événement. Ils apparaîtront au fil du jeu.</p><% } %>
+</div></div>
+<%- include('partials/footer') %>

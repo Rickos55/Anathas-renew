@@ -38,10 +38,10 @@ const User = sequelize.define('User', {
 const Country = sequelize.define('Country', {
   name: { type: DataTypes.STRING(100), unique: true, allowNull: false },
   money: { type: DataTypes.FLOAT, defaultValue: 500000000 },
-  agriculture: { type: DataTypes.INTEGER, defaultValue: 5 },
-  industry: { type: DataTypes.INTEGER, defaultValue: 5 },
-  commerce: { type: DataTypes.INTEGER, defaultValue: 5 },
-  population: { type: DataTypes.INTEGER, defaultValue: 100000 },
+  agriculture: { type: DataTypes.INTEGER, defaultValue: 10 },
+  industry: { type: DataTypes.INTEGER, defaultValue: 10 },
+  commerce: { type: DataTypes.INTEGER, defaultValue: 10 },
+  population: { type: DataTypes.INTEGER, defaultValue: 5000000 },
   satisfaction: { type: DataTypes.FLOAT, defaultValue: 50 },
   employment: { type: DataTypes.FLOAT, defaultValue: 70 },
   health: { type: DataTypes.FLOAT, defaultValue: 50 },
@@ -82,6 +82,13 @@ const Country = sequelize.define('Country', {
   budgetResearch: { type: DataTypes.FLOAT, defaultValue: 20 },
   isBlockaded: { type: DataTypes.BOOLEAN, defaultValue: false },
   gdp: { type: DataTypes.FLOAT, defaultValue: 0 },
+  maxTerritory: { type: DataTypes.INTEGER, defaultValue: 500000 },
+  hasNuclear: { type: DataTypes.BOOLEAN, defaultValue: false },
+  hasSpaceProgram: { type: DataTypes.BOOLEAN, defaultValue: false },
+  wonderBonus: { type: DataTypes.FLOAT, defaultValue: 0 },
+  victories: { type: DataTypes.INTEGER, defaultValue: 0 },
+  defeats: { type: DataTypes.INTEGER, defaultValue: 0 },
+  seasonPoints: { type: DataTypes.FLOAT, defaultValue: 0 },
   investAgri: { type: DataTypes.FLOAT, defaultValue: 0 },
   investIndustry: { type: DataTypes.FLOAT, defaultValue: 0 },
   investCommerce: { type: DataTypes.FLOAT, defaultValue: 0 },
@@ -203,6 +210,115 @@ const PrivateMessage = sequelize.define('PrivateMessage', {
   isDeletedByRecipient: { type: DataTypes.BOOLEAN, defaultValue: false }
 });
 
+// ─── NOUVEAUX MODÈLES ───
+
+const EventLog = sequelize.define('EventLog', {
+  countryId: { type: DataTypes.INTEGER, allowNull: false },
+  eventType: { type: DataTypes.STRING(30), defaultValue: 'info' }, // war, diplomacy, economy, spy, system
+  message: { type: DataTypes.TEXT, allowNull: false },
+  isPublic: { type: DataTypes.BOOLEAN, defaultValue: false }
+});
+
+const ResearchAgreement = sequelize.define('ResearchAgreement', {
+  countryAId: { type: DataTypes.INTEGER, allowNull: false },
+  countryBId: { type: DataTypes.INTEGER, allowNull: false },
+  status: { type: DataTypes.STRING(20), defaultValue: 'pending' }, // pending, active, rejected
+  bonus: { type: DataTypes.FLOAT, defaultValue: 0.1 } // 10% bonus recherche mutuel
+});
+
+const Wonder = sequelize.define('Wonder', {
+  countryId: { type: DataTypes.INTEGER, allowNull: false },
+  wonderType: { type: DataTypes.STRING(30), allowNull: false },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  completedAt: { type: DataTypes.DATE, allowNull: true },
+  isCompleted: { type: DataTypes.BOOLEAN, defaultValue: false },
+  progress: { type: DataTypes.FLOAT, defaultValue: 0 }, // % de progression
+  investedMoney: { type: DataTypes.FLOAT, defaultValue: 0 }
+});
+
+const WorldEvent = sequelize.define('WorldEvent', {
+  eventType: { type: DataTypes.STRING(30), allowNull: false },
+  title: { type: DataTypes.STRING(200), allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: false },
+  effectType: { type: DataTypes.STRING(30), defaultValue: '' },
+  effectValue: { type: DataTypes.FLOAT, defaultValue: 0 },
+  turnsRemaining: { type: DataTypes.INTEGER, defaultValue: 3 },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
+});
+
+const AdminLog = sequelize.define('AdminLog', {
+  adminId: { type: DataTypes.INTEGER, allowNull: false },
+  action: { type: DataTypes.STRING(100), allowNull: false },
+  targetId: { type: DataTypes.INTEGER, allowNull: true },
+  details: { type: DataTypes.TEXT, defaultValue: '' }
+});
+
+const AllianceRole = sequelize.define('AllianceRole', {
+  allianceId: { type: DataTypes.INTEGER, allowNull: false },
+  userId: { type: DataTypes.INTEGER, allowNull: false },
+  role: { type: DataTypes.STRING(20), defaultValue: 'member' } // leader, officer, member
+});
+
+const AllianceTreasury = sequelize.define('AllianceTreasury', {
+  allianceId: { type: DataTypes.INTEGER, unique: true, allowNull: false },
+  money: { type: DataTypes.FLOAT, defaultValue: 0 },
+  researchPoints: { type: DataTypes.FLOAT, defaultValue: 0 }
+});
+
+const AllianceJoinRequest = sequelize.define('AllianceJoinRequest', {
+  allianceId: { type: DataTypes.INTEGER, allowNull: false },
+  userId: { type: DataTypes.INTEGER, allowNull: false },
+  status: { type: DataTypes.STRING(20), defaultValue: 'pending' } // pending, accepted, rejected
+});
+
+const Season = sequelize.define('Season', {
+  number: { type: DataTypes.INTEGER, defaultValue: 1 },
+  startDate: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  endDate: { type: DataTypes.DATE, allowNull: true },
+  isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+  winner: { type: DataTypes.STRING(100), defaultValue: '' }
+});
+
+const HallOfFame = sequelize.define('HallOfFame', {
+  seasonId: { type: DataTypes.INTEGER, allowNull: false },
+  rank: { type: DataTypes.INTEGER, allowNull: false },
+  countryName: { type: DataTypes.STRING(100), allowNull: false },
+  playerName: { type: DataTypes.STRING(100), allowNull: false },
+  score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  gdp: { type: DataTypes.FLOAT, defaultValue: 0 },
+  maxTerritory: { type: DataTypes.INTEGER, defaultValue: 500000 },
+  hasNuclear: { type: DataTypes.BOOLEAN, defaultValue: false },
+  hasSpaceProgram: { type: DataTypes.BOOLEAN, defaultValue: false },
+  wonderBonus: { type: DataTypes.FLOAT, defaultValue: 0 },
+  victories: { type: DataTypes.INTEGER, defaultValue: 0 },
+  defeats: { type: DataTypes.INTEGER, defaultValue: 0 },
+  seasonPoints: { type: DataTypes.FLOAT, defaultValue: 0 },
+  population: { type: DataTypes.INTEGER, defaultValue: 0 }
+});
+
+// Rate limiting map
+const rateLimitMap = new Map();
+function rateLimit(userId, action, maxPerMinute = 10) {
+  const key = `${userId}:${action}`;
+  const now = Date.now();
+  if (!rateLimitMap.has(key)) rateLimitMap.set(key, []);
+  const times = rateLimitMap.get(key).filter(t => now - t < 60000);
+  if (times.length >= maxPerMinute) return false;
+  times.push(now);
+  rateLimitMap.set(key, times);
+  return true;
+}
+
+// Log admin action
+async function logAdmin(adminId, action, targetId = null, details = '') {
+  await AdminLog.create({ adminId, action, targetId, details });
+}
+
+// Log country event
+async function logEvent(countryId, message, eventType = 'info', isPublic = false) {
+  await EventLog.create({ countryId, message, eventType, isPublic });
+}
+
 // Associations
 User.hasOne(Country, { foreignKey: 'userId' });
 Country.belongsTo(User, { foreignKey: 'userId' });
@@ -221,10 +337,10 @@ function computeGDP(c) {
   // PIB = revenus annualisés (2 tours/jour * 365 jours)
   const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
   const popM = c.population / 1000000;
-  const agri = popM * 500 * c.agriculture * (1 + (c.techAgriculture||0) * 0.15) * (c.budgetAgriculture / total);
-  const ind  = popM * 800 * c.industry    * (1 + (c.techIndustry||0)    * 0.15) * (c.budgetIndustry / total);
-  const com  = c.isBlockaded ? 0 : popM * 300 * c.commerce * (c.budgetIndustry / total);
-  const tax  = c.population * 0.1;
+  const agri = popM * 8000 * c.agriculture * (1 + (c.techAgriculture||0) * 0.15) * (c.budgetAgriculture / total);
+  const ind  = popM * 20000 * c.industry   * (1 + (c.techIndustry||0)    * 0.15) * (c.budgetIndustry / total);
+  const com  = c.isBlockaded ? 0 : popM * 8000 * c.commerce * (c.budgetIndustry / total);
+  const tax  = c.population * 0.5;
   return Math.round((agri + ind + com + tax) * 730); // annualisé
 }
 
@@ -462,9 +578,18 @@ app.post('/military/peace/:warId', requireLogin, async (req, res) => {
   if (!war) return res.redirect('/military');
   war.status = 'peace';
   await war.save();
-  const enemyId = war.attackerId === user.Country.id ? war.defenderId : war.attackerId;
+  const c = user.Country;
+  const enemyId = war.attackerId === c.id ? war.defenderId : war.attackerId;
   const enemy = await Country.findByPk(enemyId, { include: User });
-  await notify(enemy.userId, `🕊️ ${user.Country.name} a demandé la paix.`, 'war');
+  // Comptabiliser victoire/défaite selon territoire
+  if (war.territoryTransferred > 0) {
+    if (war.attackerId === c.id) { c.victories += 1; enemy.defeats += 1; }
+    else { c.defeats += 1; enemy.victories += 1; }
+    await c.save(); await enemy.save();
+  }
+  await notify(enemy.userId, `🕊️ ${c.name} a demandé la paix. La guerre est terminée.`, 'war');
+  await logEvent(c.id, `Paix signée avec ${enemy.name}. Territoire transféré : ${war.territoryTransferred} km²`, 'war', true);
+  await logEvent(enemy.id, `Paix signée avec ${c.name}. Territoire transféré : ${war.territoryTransferred} km²`, 'war', true);
   res.redirect('/military');
 });
 
@@ -482,7 +607,10 @@ app.get('/research', requireLogin, async (req, res) => {
     alloc: c[`alloc${d.charAt(0).toUpperCase()+d.slice(1)}`],
     progress: Math.min(100, Math.round(c[`rp${d.charAt(0).toUpperCase()+d.slice(1)}`] / techCost(c[`tech${d.charAt(0).toUpperCase()+d.slice(1)}`]) * 100))
   }));
-  res.render('research', { user, country: c, techInfo, unread });
+  // Points gagnés par tour
+  const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
+  const currentGain = 10 + Math.round((c.budgetResearch / total) * 50);
+  res.render('research', { user, country: c, techInfo, unread, currentGain });
 });
 
 app.post('/research/allocate', requireLogin, async (req, res) => {
@@ -519,8 +647,15 @@ app.get('/diplomacy', requireLogin, async (req, res) => {
   const c = user.Country;
   const countries = await Country.findAll({ where: { id: { [Sequelize.Op.ne]: c.id } }, include: User });
   const spyMissions = await SpyMission.findAll({ where: { spyCountryId: c.id }, order: [['createdAt','DESC']], limit: 15 });
+  const agreements = await ResearchAgreement.findAll({
+    where: { [Sequelize.Op.or]: [{ countryAId: c.id }, { countryBId: c.id }] }
+  });
+  for (const a of agreements) {
+    const partnerId = a.countryAId === c.id ? a.countryBId : a.countryAId;
+    a.partner = await Country.findByPk(partnerId);
+  }
   const unread = await getUnread(user.id);
-  res.render('diplomacy', { user, country: c, countries, spyMissions, unread });
+  res.render('diplomacy', { user, country: c, countries, spyMissions, researchAgreements: agreements, unread });
 });
 
 app.post('/diplomacy/blockade/:targetId', requireLogin, async (req, res) => {
@@ -668,10 +803,30 @@ app.get('/ranking', requireLogin, async (req, res) => {
 // ─── ALLIANCES ───
 app.get('/alliances', requireLogin, async (req, res) => {
   const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
   const alliances = await Alliance.findAll();
   for (const a of alliances) { a.members = await Country.findAll({ where: { allianceId: a.id } }); }
+  let treasury = null, pendingRequests = [], isLeader = false, myRequests = [];
+  if (c.allianceId) {
+    treasury = await AllianceTreasury.findOne({ where: { allianceId: c.allianceId } });
+    const alliance = await Alliance.findByPk(c.allianceId);
+    isLeader = alliance && alliance.leaderId === user.id;
+    if (isLeader) {
+      pendingRequests = await AllianceJoinRequest.findAll({ where: { allianceId: c.allianceId, status: 'pending' } });
+      for (const r of pendingRequests) {
+        r.applicant = await User.findByPk(r.userId, { include: Country });
+      }
+    }
+    c.alliance = alliance;
+  } else {
+    myRequests = await AllianceJoinRequest.findAll({ where: { userId: user.id, status: 'pending' } });
+    for (const r of myRequests) {
+      const a = await Alliance.findByPk(r.allianceId);
+      r.allianceName = a ? a.name : '?';
+    }
+  }
   const unread = await getUnread(user.id);
-  res.render('alliances', { user, country: user.Country, alliances, unread });
+  res.render('alliances', { user, country: c, alliances, unread, treasury, pendingRequests, isLeader, myRequests });
 });
 
 app.post('/alliances/create', requireLogin, async (req, res) => {
@@ -844,13 +999,19 @@ app.post('/admin/run_turn', requireAdmin, async (req, res) => {
 
 app.post('/admin/set_role/:userId/:role', requireAdmin, async (req, res) => {
   const u = await User.findByPk(req.params.userId);
-  if (u && ['player','moderator','admin'].includes(req.params.role)) { u.role = req.params.role; await u.save(); }
+  if (u && ['player','moderator','admin'].includes(req.params.role)) {
+    await logAdmin(req.session.userId, `set_role_${req.params.role}`, u.id, `${u.username} → ${req.params.role}`);
+    u.role = req.params.role; await u.save();
+  }
   res.json({ success: true });
 });
 
 app.post('/admin/ban/:userId', requireMod, async (req, res) => {
   const u = await User.findByPk(req.params.userId);
-  if (u && u.role !== 'admin') { u.isBanned = !u.isBanned; await u.save(); }
+  if (u && u.role !== 'admin') {
+    await logAdmin(req.session.userId, u.isBanned ? 'unban' : 'ban', u.id, u.username);
+    u.isBanned = !u.isBanned; await u.save();
+  }
   res.json({ success: true, banned: u.isBanned });
 });
 
@@ -938,22 +1099,12 @@ app.post('/admin/country/:countryId', requireAdmin, async (req, res) => {
 app.get('/messages', requireLogin, async (req, res) => {
   const user = await User.findByPk(req.session.userId, { include: Country });
   const unread = await getUnread(user.id);
-  // Boîte de réception
-  const received = await PrivateMessage.findAll({
-    where: { toUserId: user.id, isDeletedByRecipient: false },
-    order: [['createdAt','DESC']], limit: 50
-  });
-  // Boîte d'envoi
-  const sent = await PrivateMessage.findAll({
-    where: { fromUserId: user.id, isDeletedBySender: false },
-    order: [['createdAt','DESC']], limit: 50
-  });
-  // Enrichir avec les noms
+  const received = await PrivateMessage.findAll({ where: { toUserId: user.id, isDeletedByRecipient: false }, order: [['createdAt','DESC']], limit: 50 });
+  const sent = await PrivateMessage.findAll({ where: { fromUserId: user.id, isDeletedBySender: false }, order: [['createdAt','DESC']], limit: 50 });
   for (const m of [...received, ...sent]) {
     m.fromUser = await User.findByPk(m.fromUserId);
     m.toUser = await User.findByPk(m.toUserId);
   }
-  // Marquer comme lus
   await PrivateMessage.update({ isRead: true }, { where: { toUserId: user.id, isRead: false } });
   const users = await User.findAll({ where: { id: { [Sequelize.Op.ne]: user.id } }, include: Country });
   res.render('messages', { user, country: user.Country, received, sent, users, unread });
@@ -1149,6 +1300,238 @@ app.get('/tutorial', requireLogin, async (req, res) => {
   res.render('tutorial', { user, country: user.Country, unread });
 });
 
+
+// ─── PROFIL PUBLIC D'UN PAYS ───
+app.get('/country/:countryId', async (req, res) => {
+  try {
+    const viewer = req.session.userId ? await User.findByPk(req.session.userId, { include: Country }) : null;
+    const country = await Country.findByPk(req.params.countryId, { include: User });
+    if (!country) return res.redirect('/ranking');
+    country.allianceName = country.allianceId ? (await Alliance.findByPk(country.allianceId))?.name || '—' : '—';
+    const wars = await War.findAll({
+      where: { [Sequelize.Op.or]: [{ attackerId: country.id }, { defenderId: country.id }] },
+      order: [['createdAt','DESC']], limit: 5
+    });
+    for (const w of wars) {
+      w.enemy = await Country.findByPk(w.attackerId === country.id ? w.defenderId : w.attackerId);
+    }
+    const wonders = await Wonder.findAll({ where: { countryId: country.id, isCompleted: true } });
+    const publicEvents = await EventLog.findAll({ where: { countryId: country.id, isPublic: true }, order: [['createdAt','DESC']], limit: 10 });
+    const unread = viewer ? await getUnread(viewer.id) : 0;
+    res.render('country_profile', { viewer, country, wars, wonders, publicEvents, unread, currentCountry: viewer?.Country || null, session: req.session });
+  } catch(err) { console.error(err); res.redirect('/ranking'); }
+});
+
+// ─── JOURNAL D'ÉVÉNEMENTS ───
+app.get('/events', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const events = await EventLog.findAll({ where: { countryId: user.Country.id }, order: [['createdAt','DESC']], limit: 50 });
+  const worldEvents = await WorldEvent.findAll({ where: { isActive: true }, order: [['createdAt','DESC']] });
+  const unread = await getUnread(user.id);
+  res.render('events', { user, country: user.Country, events, worldEvents, unread });
+});
+
+// ─── ACCORDS DE RECHERCHE ───
+app.post('/diplomacy/research_agreement', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const targetId = parseInt(req.body.target_id);
+  const target = await Country.findByPk(targetId, { include: User });
+  if (!target || target.id === c.id) return res.redirect('/diplomacy');
+  const existing = await ResearchAgreement.findOne({
+    where: { [Sequelize.Op.or]: [{ countryAId: c.id, countryBId: targetId }, { countryAId: targetId, countryBId: c.id }] }
+  });
+  if (existing) return res.redirect('/diplomacy');
+  await ResearchAgreement.create({ countryAId: c.id, countryBId: targetId, status: 'pending' });
+  await notify(target.userId, `🔬 ${c.name} vous propose un accord de recherche !`, 'diplomacy');
+  await logEvent(c.id, `Accord de recherche proposé à ${target.name}`, 'diplomacy');
+  res.redirect('/diplomacy');
+});
+
+app.post('/diplomacy/research_agreement/accept/:id', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const agreement = await ResearchAgreement.findByPk(req.params.id);
+  if (!agreement || agreement.countryBId !== user.Country.id) return res.redirect('/diplomacy');
+  agreement.status = 'active';
+  await agreement.save();
+  const other = await Country.findByPk(agreement.countryAId, { include: User });
+  await notify(other.userId, `✅ ${user.Country.name} a accepté votre accord de recherche !`, 'diplomacy');
+  res.redirect('/diplomacy');
+});
+
+app.post('/diplomacy/research_agreement/reject/:id', requireLogin, async (req, res) => {
+  const agreement = await ResearchAgreement.findByPk(req.params.id);
+  if (agreement) { agreement.status = 'rejected'; await agreement.save(); }
+  res.redirect('/diplomacy');
+});
+
+// ─── MERVEILLES ───
+const WONDERS = {
+  pyramids: { name: 'Pyramides Modernes', cost: 5000000000, effect: '+10% satisfaction permanente', bonus: 'satisfaction' },
+  colosseum: { name: 'Colisée Galactique', cost: 3000000000, effect: '+15% puissance militaire permanente', bonus: 'military' },
+  library: { name: 'Grande Bibliothèque', cost: 2000000000, effect: '+20% recherche permanente', bonus: 'research' },
+  dam: { name: 'Grand Barrage', cost: 4000000000, effect: '-30% pollution permanente', bonus: 'pollution' },
+  spaceport: { name: 'Port Spatial', cost: 8000000000, effect: 'Programme spatial débloqué', bonus: 'space' },
+  nuclear: { name: 'Arsenal Nucléaire', cost: 6000000000, effect: 'Arme nucléaire débloquée (dissuasion)', bonus: 'nuclear' }
+};
+
+app.get('/wonders', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const myWonders = await Wonder.findAll({ where: { countryId: c.id } });
+  const myWonderTypes = myWonders.map(w => w.wonderType);
+  const unread = await getUnread(user.id);
+  res.render('wonders', { user, country: c, wonders: WONDERS, myWonders, myWonderTypes, unread });
+});
+
+app.post('/wonders/invest/:type', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  const type = req.params.type;
+  if (!WONDERS[type]) return res.redirect('/wonders');
+  const wonder = WONDERS[type];
+  const amount = Math.min(parseFloat(req.body.amount) || 0, c.money);
+  if (amount <= 0) return res.redirect('/wonders');
+  let existing = await Wonder.findOne({ where: { countryId: c.id, wonderType: type } });
+  if (!existing) existing = await Wonder.create({ countryId: c.id, wonderType: type, name: wonder.name });
+  if (existing.isCompleted) return res.redirect('/wonders');
+  existing.investedMoney += amount;
+  existing.progress = Math.min(100, (existing.investedMoney / wonder.cost) * 100);
+  c.money -= amount;
+  if (existing.progress >= 100) {
+    existing.isCompleted = true;
+    existing.completedAt = new Date();
+    if (wonder.bonus === 'space') c.hasSpaceProgram = true;
+    if (wonder.bonus === 'nuclear') c.hasNuclear = true;
+    await notify(user.id, `🏛️ Merveille terminée : ${wonder.name} ! ${wonder.effect}`, 'info');
+    await logEvent(c.id, `Merveille construite : ${wonder.name}`, 'economy', true);
+    const allUsers = await User.findAll();
+    for (const u of allUsers) {
+      if (u.id !== user.id) await notify(u.id, `🏛️ ${c.name} a terminé la construction de ${wonder.name} !`, 'info');
+    }
+  }
+  await existing.save();
+  await c.save();
+  res.redirect('/wonders');
+});
+
+// ─── ALLIANCES AMÉLIORÉES ───
+app.post('/alliances/request/:id', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  if (user.Country.allianceId) return res.redirect('/alliances');
+  const existing = await AllianceJoinRequest.findOne({ where: { allianceId: req.params.id, userId: user.id, status: 'pending' } });
+  if (!existing) {
+    await AllianceJoinRequest.create({ allianceId: req.params.id, userId: user.id });
+    const alliance = await Alliance.findByPk(req.params.id);
+    const leader = await User.findByPk(alliance.leaderId);
+    await notify(leader.id, `📨 ${user.username} demande à rejoindre ${alliance.name}`, 'info');
+  }
+  res.redirect('/alliances');
+});
+
+app.post('/alliances/accept_request/:requestId', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const request = await AllianceJoinRequest.findByPk(req.params.requestId);
+  if (!request) return res.redirect('/alliances');
+  const alliance = await Alliance.findByPk(request.allianceId);
+  if (alliance.leaderId !== user.id) return res.redirect('/alliances');
+  const applicant = await User.findByPk(request.userId, { include: Country });
+  applicant.Country.allianceId = alliance.id;
+  await applicant.Country.save();
+  await AllianceRole.create({ allianceId: alliance.id, userId: applicant.id, role: 'member' });
+  request.status = 'accepted';
+  await request.save();
+  await notify(applicant.id, `✅ Votre demande pour rejoindre ${alliance.name} a été acceptée !`, 'info');
+  res.redirect('/alliances');
+});
+
+app.post('/alliances/reject_request/:requestId', requireLogin, async (req, res) => {
+  const request = await AllianceJoinRequest.findByPk(req.params.requestId);
+  if (request) { request.status = 'rejected'; await request.save(); }
+  res.redirect('/alliances');
+});
+
+app.post('/alliances/deposit', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  if (!c.allianceId) return res.redirect('/alliances');
+  const amount = Math.min(parseFloat(req.body.amount) || 0, c.money);
+  if (amount <= 0) return res.redirect('/alliances');
+  c.money -= amount;
+  let treasury = await AllianceTreasury.findOne({ where: { allianceId: c.allianceId } });
+  if (!treasury) treasury = await AllianceTreasury.create({ allianceId: c.allianceId });
+  treasury.money += amount;
+  await treasury.save();
+  await c.save();
+  res.redirect('/alliances');
+});
+
+app.post('/alliances/set_role/:targetUserId/:role', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const alliance = user.Country.allianceId ? await Alliance.findByPk(user.Country.allianceId) : null;
+  if (!alliance || alliance.leaderId !== user.id) return res.redirect('/alliances');
+  const targetUserId = parseInt(req.params.targetUserId);
+  await AllianceRole.upsert({ allianceId: alliance.id, userId: targetUserId, role: req.params.role });
+  res.redirect('/alliances');
+});
+
+// ─── MESSAGES : RÉPONDRE ───
+app.get('/messages/reply/:userId', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const targetUser = await User.findByPk(req.params.userId);
+  if (!targetUser) return res.redirect('/messages');
+  const thread = await PrivateMessage.findAll({
+    where: {
+      [Sequelize.Op.or]: [
+        { fromUserId: user.id, toUserId: targetUser.id },
+        { fromUserId: targetUser.id, toUserId: user.id }
+      ]
+    },
+    order: [['createdAt','ASC']], limit: 20
+  });
+  const unread = await getUnread(user.id);
+  res.render('message_thread', { user, country: user.Country, targetUser, thread, unread });
+});
+
+// ─── HALL OF FAME & SAISONS ───
+app.get('/halloffame', async (req, res) => {
+  const user = req.session.userId ? await User.findByPk(req.session.userId, { include: Country }) : null;
+  const seasons = await Season.findAll({ order: [['number','DESC']] });
+  const hallOfFame = await HallOfFame.findAll({ order: [['seasonId','DESC'],['rank','ASC']] });
+  const activeSeason = seasons.find(s => s.isActive);
+  const unread = user ? await getUnread(user.id) : 0;
+  res.render('halloffame', { user, seasons, hallOfFame, activeSeason, unread, currentCountry: user?.Country||null, session: req.session });
+});
+
+app.post('/admin/end_season', requireAdmin, async (req, res) => {
+  const activeSeason = await Season.findOne({ where: { isActive: true } });
+  if (!activeSeason) return res.json({ error: 'Pas de saison active' });
+  activeSeason.isActive = false;
+  activeSeason.endDate = new Date();
+  const countries = await Country.findAll({ include: User, order: [['score','DESC']], limit: 10 });
+  activeSeason.winner = countries[0]?.name || '';
+  await activeSeason.save();
+  for (let i = 0; i < countries.length; i++) {
+    const c = countries[i];
+    await HallOfFame.create({ seasonId: activeSeason.id, rank: i+1, countryName: c.name, playerName: c.User?.username||'?', score: c.score, gdp: c.gdp||0, population: c.population });
+  }
+  const newSeason = await Season.create({ number: activeSeason.number + 1 });
+  await logAdmin(req.session.userId, 'end_season', activeSeason.id, `Saison ${activeSeason.number} terminée`);
+  const allUsers = await User.findAll();
+  for (const u of allUsers) await notify(u.id, `🏆 La saison ${activeSeason.number} est terminée ! Vainqueur : ${activeSeason.winner}`, 'info');
+  res.json({ success: true, message: `Saison ${activeSeason.number} terminée, saison ${newSeason.number} démarrée !` });
+});
+
+// ─── LOGS ADMIN ───
+app.get('/admin/logs', requireAdmin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId);
+  const logs = await AdminLog.findAll({ order: [['createdAt','DESC']], limit: 100 });
+  for (const l of logs) { l.admin = await User.findByPk(l.adminId); }
+  const unread = await getUnread(user.id);
+  const currentCountry = await Country.findOne({ where: { userId: user.id } });
+  res.render('admin_logs', { user, logs, unread, currentCountry, session: req.session });
+});
+
 // ─── TOUR ENGINE ───
 async function processTurn() {
   const countries = await Country.findAll();
@@ -1237,10 +1620,71 @@ async function processTurn() {
       satisfaction: Math.round(c.satisfaction * 10) / 10,
       pollution: Math.round(c.pollution * 100) / 100
     });
+    // ── Effets de la pollution ──
+    if (c.pollution > 70) {
+      c.population = Math.round(c.population * 0.999); // -0.1% pop
+      c.food = Math.max(0, c.food - 2);
+      c.satisfaction = Math.max(0, c.satisfaction - 2);
+      await logEvent(c.id, `⚠️ Pollution critique (${c.pollution.toFixed(1)}) : population et nourriture affectées`, 'economy');
+    }
+    // ── Limite territoire / population ──
+    const maxPop = (c.plains + c.urban * 5) * 50000; // capacité max selon territoire
+    if (c.population > maxPop) {
+      c.population = Math.round(maxPop);
+      c.satisfaction = Math.max(0, c.satisfaction - 5);
+      await logEvent(c.id, `⚠️ Surpopulation ! Votre territoire est trop petit pour votre population.`, 'economy');
+    }
+    // ── Bonus merveilles ──
+    const wonders = await Wonder.findAll({ where: { countryId: c.id, isCompleted: true } });
+    c.wonderBonus = wonders.length * 0.05; // +5% revenus par merveille
+
+    // ── Accords de recherche ──
+    const agreements = await ResearchAgreement.findAll({
+      where: { status: 'active', [Sequelize.Op.or]: [{ countryAId: c.id }, { countryBId: c.id }] }
+    });
+    const researchBonus = agreements.length * 0.1;
+    ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
+      c[`rp${d}`] = Math.round(((c[`rp${d}`] || 0) + researchGained * researchBonus) * 10) / 10;
+    });
+
+    // ── Score de saison ──
+    c.seasonPoints = computeScore(c);
+
     c.militaryPower = computeMilitaryPower(c);
     c.score = computeScore(c);
     await c.save();
   }
+
+  // ── Événements mondiaux aléatoires (1 chance sur 20 par tour) ──
+  if (Math.random() < 0.05) {
+    const events = [
+      { type: 'economic', title: '📈 Boom économique mondial', desc: 'Une période de prospérité mondiale booste les revenus de tous les pays.', effect: 'income', value: 0.2 },
+      { type: 'economic', title: '📉 Crise économique mondiale', desc: 'Une récession mondiale réduit les revenus de tous les pays.', effect: 'income', value: -0.15 },
+      { type: 'health', title: '🦠 Épidémie mondiale', desc: 'Une épidémie se propage, réduisant la satisfaction de tous les pays.', effect: 'satisfaction', value: -10 },
+      { type: 'environment', title: '🌪️ Catastrophes climatiques', desc: 'Des catastrophes naturelles frappent de nombreux pays.', effect: 'pollution', value: 5 },
+      { type: 'technology', title: '💡 Percée technologique mondiale', desc: 'Une découverte majeure accélère la recherche mondiale.', effect: 'research', value: 0.3 },
+      { type: 'peace', title: '🕊️ Sommet mondial pour la paix', desc: 'Un sommet diplomatique améliore les relations internationales.', effect: 'satisfaction', value: 5 }
+    ];
+    const event = events[Math.floor(Math.random() * events.length)];
+    const worldEvent = await WorldEvent.create({
+      eventType: event.type, title: event.title, description: event.desc,
+      effectType: event.effect, effectValue: event.value, turnsRemaining: 3
+    });
+    // Notifier tous les joueurs
+    const allUsers = await User.findAll();
+    for (const u of allUsers) {
+      await notify(u.id, `🌍 Événement mondial : ${event.title} — ${event.desc}`, 'info');
+    }
+  }
+
+  // ── Décrémenter événements actifs ──
+  const activeEvents = await WorldEvent.findAll({ where: { isActive: true } });
+  for (const ev of activeEvents) {
+    ev.turnsRemaining -= 1;
+    if (ev.turnsRemaining <= 0) ev.isActive = false;
+    await ev.save();
+  }
+
   console.log(`Tour traité à ${new Date().toISOString()} - ${countries.length} pays`);
 }
 
@@ -1272,18 +1716,18 @@ function scheduleturns() {
 function computeProjections(c) {
   const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
   const popM = c.population / 1000000;
-  const agriIncome     = Math.round(popM * 500 * c.agriculture * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
-  const industryIncome = Math.round(popM * 800 * c.industry    * (1 + c.techIndustry    * 0.15) * (c.budgetIndustry    / total));
-  const commerceIncome = c.isBlockaded ? 0 : Math.round(popM * 300 * c.commerce * (c.budgetIndustry / total));
-  const popTax         = Math.round(c.population * 0.1);
-  const militaryCost   = Math.round(c.infantry * 2 + c.tanks * 20 + c.aviation * 50 + c.navy * 35 + c.missiles * 80 + c.specialForces * 100);
+  const agriIncome     = Math.round(popM * 8000 * c.agriculture * (1 + c.techAgriculture * 0.15) * (c.budgetAgriculture / total));
+  const industryIncome = Math.round(popM * 20000 * c.industry   * (1 + c.techIndustry    * 0.15) * (c.budgetIndustry    / total));
+  const commerceIncome = c.isBlockaded ? 0 : Math.round(popM * 8000 * c.commerce * (c.budgetIndustry / total));
+  const popTax         = Math.round(c.population * 0.5);
+  const militaryCost   = Math.round(c.infantry * 5 + c.tanks * 100 + c.aviation * 300 + c.navy * 200 + c.missiles * 500 + c.specialForces * 800);
   const incomeTotal    = agriIncome + industryIncome + commerceIncome + popTax;
   const moneyDelta     = incomeTotal - militaryCost;
 
-  const foodProd  = c.agriculture * 5000 * (1 + c.techAgriculture * 0.1);
+  const foodProd  = c.agriculture * 500000 * (1 + c.techAgriculture * 0.1);
   const nextFood  = Math.min(100, Math.max(0, (foodProd / Math.max(c.population, 1)) * 100));
   const nextHealth= Math.min(100, Math.max(0, (c.budgetHealth / total) * 100 * (1 + c.techHealth * 0.1)));
-  const employCapacity = (c.industry * 0.02 + c.commerce * 0.01 + c.agriculture * 0.01) * 100;
+  const employCapacity = Math.min(100, (c.industry * 3 + c.commerce * 2 + c.agriculture * 1));
   const nextEmploy= Math.min(100, Math.max(0, employCapacity));
   const nextSatisf= Math.min(100, Math.max(0, nextFood * 0.35 + nextHealth * 0.35 + nextEmploy * 0.30));
   const growthRate= nextSatisf >= 60 ? 0.003 : nextSatisf >= 40 ? 0.001 : -0.002;
@@ -1315,6 +1759,10 @@ async function init() {
       console.log('Admin créé : admin / admin123 — CHANGEZ CE MOT DE PASSE !');
     }
     const catCount = await ForumCategory.count();
+    // Init season
+    const seasonCount = await Season.count();
+    if (seasonCount === 0) await Season.create({ number: 1 });
+
     if (catCount === 0) {
       await ForumCategory.bulkCreate([
         { name: 'Annonces officielles', description: 'Annonces des administrateurs', isOfficial: true, order: 0 },

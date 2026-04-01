@@ -1,0 +1,52 @@
+<%- include('partials/header', {title: country.name, session, unread, currentCountry}) %>
+<h1 class="page-title">🏳 <%= country.name %></h1>
+<div class="two-col">
+<div>
+<div class="section-card"><div class="section-header"><span class="section-title">📊 Statistiques publiques</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Dirigeant</span><span class="stat-value teal"><%= country.User ? country.User.username : '?' %></span></div>
+<div class="stat-row"><span class="stat-label">Alliance</span><span class="stat-value"><%= country.allianceName %></span></div>
+<div class="stat-row"><span class="stat-label">Population</span><span class="stat-value"><%= country.population.toLocaleString('fr-FR') %> hab.</span></div>
+<div class="stat-row"><span class="stat-label">Territoire</span><span class="stat-value"><%= (country.plains+country.desert+country.urban).toLocaleString('fr-FR') %> km²</span></div>
+<div class="stat-row"><span class="stat-label">PIB annuel</span><span class="stat-value teal"><%= country.gdp ? (country.gdp/1e9).toFixed(3)+' G$' : '—' %></span></div>
+<div class="stat-row"><span class="stat-label">Puissance militaire</span><span class="stat-value"><%= Math.round(country.militaryPower) %></span></div>
+<div class="stat-row"><span class="stat-label">Score</span><span class="stat-value teal" style="font-size:16px;font-weight:bold"><%= Math.round(country.score) %></span></div>
+<div class="stat-row"><span class="stat-label">Victoires / Défaites</span><span class="stat-value"><span class="good"><%= country.victories || 0 %></span> / <span class="bad"><%= country.defeats || 0 %></span></span></div>
+<div class="stat-row"><span class="stat-label">Protection</span><span class="stat-value <%= country.isProtected?'good':'bad' %>"><%= country.isProtected ? '🛡 Protégé' : '❌ Non protégé' %></span></div>
+</div></div>
+<% if(wonders.length) { %>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🏛 Merveilles</span></div><div class="section-body">
+<% wonders.forEach(w => { %><div class="stat-row"><span class="stat-label">🏛 <%= w.name %></span><span class="badge-active">Construite</span></div><% }) %>
+</div></div>
+<% } %>
+</div>
+<div>
+<% if(wars.length) { %>
+<div class="section-card"><div class="section-header"><span class="section-title">⚔ Guerres récentes</span></div><div class="section-body">
+<% wars.forEach(w => { const isAtt = w.attackerId === country.id; %>
+<div class="stat-row">
+<span><%= isAtt ? '⚔ Attaque vs' : '🛡 Défense vs' %> <%= w.enemy ? w.enemy.name : '?' %></span>
+<span class="<%= w.status==='active'?'bad':w.territoryTransferred>0&&isAtt?'good':'bad' %>"><%= w.status==='active'?'En cours':w.territoryTransferred+' km²' %></span>
+</div>
+<% }) %>
+</div></div>
+<% } %>
+<% if(publicEvents.length) { %>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📜 Événements récents</span></div><div class="section-body">
+<% publicEvents.forEach(e => { %>
+<div style="padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
+<span style="color:var(--text-dim);font-size:11px"><%= new Date(e.createdAt).toLocaleDateString('fr-FR') %></span>
+<span style="margin-left:8px"><%= e.message %></span>
+</div>
+<% }) %>
+</div></div>
+<% } %>
+<% if(viewer && viewer.id !== country.userId) { %>
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🤝 Actions</span></div><div class="section-body" style="display:flex;gap:8px;flex-wrap:wrap">
+<a href="/messages/reply/<%= country.userId %>" class="btn btn-primary btn-sm">✉️ Envoyer un message</a>
+<form method="POST" action="/military/attack/<%= country.id %>" style="display:inline">
+<button class="btn btn-danger btn-sm" onclick="return confirm('Déclarer la guerre ?')">⚔ Déclarer la guerre</button>
+</form>
+</div></div>
+<% } %>
+</div></div>
+<%- include('partials/footer') %>

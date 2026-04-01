@@ -1,0 +1,39 @@
+<%- include('partials/header', {title:'Merveilles', session, unread, currentCountry}) %>
+<h1 class="page-title">🏛 Merveilles du Monde</h1>
+<p style="color:var(--text-dim);margin-bottom:14px;font-size:13px">Construisez des merveilles uniques pour obtenir des bonus permanents. Une seule merveille de chaque type peut exister dans le monde.</p>
+<div class="three-col">
+<% Object.entries(wonders).forEach(([type, w]) => {
+  const myW = myWonders.find(x => x.wonderType === type);
+  const hasIt = myWonderTypes.includes(type);
+%>
+<div class="section-card" style="<%= hasIt?'border-left-color:var(--gold)':'' %>">
+<div class="section-header"><span class="section-title">🏛 <%= w.name %></span></div>
+<div class="section-body">
+<p style="font-size:12px;color:var(--green);margin-bottom:8px"><%= w.effect %></p>
+<div class="stat-row"><span class="stat-label">Coût total</span><span class="stat-value gold"><%= (w.cost/1e9).toFixed(1) %> G$</span></div>
+<% if(myW) { %>
+<div class="stat-row"><span class="stat-label">Progression</span><span class="stat-value"><%= myW.progress.toFixed(1) %>%</span></div>
+<div class="progress-bar"><div class="progress-fill progress-gold" style="width:<%= myW.progress %>%"></div></div>
+<div class="stat-row"><span class="stat-label">Investi</span><span class="stat-value"><%= (myW.investedMoney/1e9).toFixed(3) %> G$</span></div>
+<% } %>
+<% if(hasIt && myW && myW.isCompleted) { %>
+<div class="alert alert-success" style="margin-top:8px">✅ Construite !</div>
+<% } else if(!hasIt) { %>
+<form method="POST" action="/wonders/invest/<%= type %>" style="margin-top:8px">
+<div style="display:flex;gap:6px;align-items:center">
+<input type="number" name="amount" placeholder="Montant §" min="1000000" step="1000000" style="flex:1">
+<button type="submit" class="btn btn-primary btn-sm">Investir</button>
+</div>
+</form>
+<% } else { %>
+<form method="POST" action="/wonders/invest/<%= type %>" style="margin-top:8px">
+<div style="display:flex;gap:6px;align-items:center">
+<input type="number" name="amount" placeholder="Investir plus..." min="1000000" step="1000000" style="flex:1">
+<button type="submit" class="btn btn-primary btn-sm">+</button>
+</div>
+</form>
+<% } %>
+</div></div>
+<% }) %>
+</div>
+<%- include('partials/footer') %>

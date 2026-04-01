@@ -1,22 +1,62 @@
 <%- include('partials/header', {title:'Alliances', session, unread, currentCountry}) %>
-<h1 class="page-title">Alliances</h1>
+<h1 class="page-title">🛡 Alliances</h1>
+
 <% if(!country.allianceId) { %>
-<div class="section-card" style="max-width:450px;margin-bottom:14px"><div class="section-header"><span class="section-title">⚔ Fonder une alliance</span></div><div class="section-body">
+<div class="two-col" style="margin-bottom:14px">
+<div class="section-card"><div class="section-header"><span class="section-title">⚔ Fonder une alliance</span></div><div class="section-body">
 <form method="POST" action="/alliances/create">
 <div class="form-group"><label>Nom</label><input type="text" name="name" required></div>
 <div class="form-group"><label>Description</label><textarea name="description" rows="2"></textarea></div>
 <button type="submit" class="btn btn-primary">Fonder</button>
-</form></div></div>
+</form>
+</div></div>
+<div class="section-card"><div class="section-header"><span class="section-title">📨 Mes demandes en attente</span></div><div class="section-body">
+<% if(myRequests && myRequests.length) { myRequests.forEach(r => { %>
+<div class="stat-row"><span><%= r.allianceName %></span><span class="badge-active">En attente</span></div>
+<% }) } else { %><p style="color:var(--text-dim);font-size:13px">Aucune demande.</p><% } %>
+</div></div>
+</div>
 <% } else { %>
-<div class="alert alert-info">Vous êtes membre d'une alliance. <form method="POST" action="/alliances/leave" style="display:inline"><button class="btn btn-sm btn-danger" onclick="return confirm('Quitter ?')">Quitter</button></form></div>
+<div class="alert alert-info" style="margin-bottom:14px">
+Vous êtes membre de : <strong><%= country.alliance ? country.alliance.name : 'votre alliance' %></strong>
+<form method="POST" action="/alliances/leave" style="display:inline;margin-left:12px">
+<button class="btn btn-sm btn-danger" onclick="return confirm('Quitter ?')">Quitter</button>
+</form>
+</div>
+<% if(treasury) { %>
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">💰 Trésor de l'alliance</span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Argent commun</span><span class="stat-value teal"><%= treasury.money.toLocaleString('fr-FR') %> §</span></div>
+<form method="POST" action="/alliances/deposit" style="display:flex;gap:8px;margin-top:8px">
+<input type="number" name="amount" placeholder="Montant §" min="1" style="width:180px">
+<button type="submit" class="btn btn-primary btn-sm">Déposer</button>
+</form>
+</div></div>
 <% } %>
+<% if(pendingRequests && pendingRequests.length && isLeader) { %>
+<div class="section-card" style="margin-bottom:14px"><div class="section-header"><span class="section-title">📨 Demandes d'adhésion</span></div><div class="section-body">
+<% pendingRequests.forEach(r => { %>
+<div class="stat-row">
+<span><strong><%= r.applicant ? r.applicant.username : '?' %></strong> (<%= r.applicant && r.applicant.Country ? r.applicant.Country.name : '—' %>)</span>
+<div style="display:flex;gap:6px">
+<form method="POST" action="/alliances/accept_request/<%= r.id %>" style="display:inline"><button class="btn btn-sm btn-success">✅</button></form>
+<form method="POST" action="/alliances/reject_request/<%= r.id %>" style="display:inline"><button class="btn btn-sm btn-danger">❌</button></form>
+</div>
+</div>
+<% }) %>
+</div></div>
+<% } %>
+<% } %>
+
 <% alliances.forEach(a => { %>
 <div class="alliance-card">
 <h3>🛡 <%= a.name %> <span style="font-size:12px;color:var(--text-dim)">(<%= a.members ? a.members.length : 0 %> membres)</span></h3>
 <% if(a.description) { %><p style="font-size:13px;color:var(--text-dim);margin-bottom:8px"><%= a.description %></p><% } %>
-<div style="margin-bottom:8px"><% if(a.members) a.members.forEach(m => { %><span class="member-tag"><%= m.name %></span><% }) %></div>
+<div style="margin-bottom:8px"><% if(a.members) a.members.forEach(m => { %><a href="/country/<%= m.id %>" class="member-tag"><%= m.name %></a><% }) %></div>
 <% if(!country.allianceId) { %>
-<form method="POST" action="/alliances/join/<%= a.id %>"><button class="btn btn-sm btn-primary">Rejoindre</button></form>
+<div style="display:flex;gap:6px">
+<form method="POST" action="/alliances/join/<%= a.id %>"><button class="btn btn-sm btn-primary">Rejoindre directement</button></form>
+<form method="POST" action="/alliances/request/<%= a.id %>"><button class="btn btn-sm btn-secondary">Demander à rejoindre</button></form>
+</div>
 <% } %>
 </div>
 <% }) %>
