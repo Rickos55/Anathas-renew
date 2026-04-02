@@ -873,21 +873,25 @@ app.post('/diplomacy/spy', requireLogin, async (req, res) => {
 
 // ─── MARKET ───
 app.get('/market', requireLogin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId, { include: Country });
-  const c = user.Country;
-  const offers = await MarketOffer.findAll({ where: { status: 'open' }, order: [['createdAt','DESC']] });
-  const myOffers = await MarketOffer.findAll({ where: { sellerId: c.id }, order: [['createdAt','DESC']], limit: 10 });
-  const recentTrades = await MarketOffer.findAll({ where: { status: 'accepted' }, order: [['createdAt','DESC']], limit: 10 });
-  const unread = await getUnread(user.id);
-  const labels = { money:'Argent (§)', carbonCredits:'Crédits Carbone', researchPoints:'Points de Recherche', plains:'Territoire (km²)' };
-  for (const o of offers) { o.sellerCountry = await Country.findByPk(o.sellerId); }
-  for (const o of recentTrades) { o.sellerCountry = await Country.findByPk(o.sellerId); o.buyerCountry = o.buyerId ? await Country.findByPk(o.buyerId) : null; }
-  // Prix spots du marché
-  const spotPrices = {
-    carbonCredits: await getCCPrice(),
-    researchPoints: await getResearchPointPrice()
-  };
-  res.render('market', { user, country: c, offers, myOffers, recentTrades, labels, spotPrices, unread });
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const c = user.Country;
+    const offers = await MarketOffer.findAll({ where: { status: 'open' }, order: [['createdAt','DESC']] });
+    const myOffers = await MarketOffer.findAll({ where: { sellerId: c.id }, order: [['createdAt','DESC']], limit: 10 });
+    const recentTrades = await MarketOffer.findAll({ where: { status: 'accepted' }, order: [['createdAt','DESC']], limit: 10 });
+    const unread = await getUnread(user.id);
+    const labels = { money:'Argent (§)', carbonCredits:'Crédits Carbone', researchPoints:'Points de Recherche', plains:'Territoire (km²)' };
+    for (const o of offers) { o.sellerCountry = await Country.findByPk(o.sellerId); }
+    for (const o of recentTrades) { o.sellerCountry = await Country.findByPk(o.sellerId); o.buyerCountry = o.buyerId ? await Country.findByPk(o.buyerId) : null; }
+    const spotPrices = {
+      carbonCredits: await getCCPrice(),
+      researchPoints: await getResearchPointPrice()
+    };
+    res.render('market', { user, country: c, offers, myOffers, recentTrades, labels, spotPrices, unread });
+  } catch(err) {
+    console.error('Market error:', err.message);
+    res.status(500).send('Erreur marché: ' + err.message);
+  }
 });
 
 app.post('/market/create', requireLogin, async (req, res) => {
@@ -1833,11 +1837,11 @@ async function processTurn() {
     const industryIncome = Math.round(c.industry * 80 * (1 + c.techIndustry * 0.15) * (c.budgetIndustry / total) * lawEffects.industryMulti);
     const commerceIncome = c.isBlockaded ? 0 : Math.round(c.commerce * 60 * (c.budgetIndustry / total));
     const popTax = Math.round(c.population * 0.001);
-    const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
+    const militaryCost = Math.round(c.infantry * 2 + c.tanks * 20 + c.aviation * 50 + c.navy * 35 + c.missiles * 80 + c.specialForces * 100);
     const totalIncome = agriIncome + industryIncome + commerceIncome + popTax;
     // Calcul du delta réel
     const rawDelta = totalIncome - militaryCost;
-    let newMoney = Math.round(c.money + rawDelta);
+    let newMoney = Math.round((c.money || 0) + rawDelta);
 
     // Si budget > 100% : on tente de puiser dans la tréso pour financer l'excès
     const budgetExcess = Math.max(0, totalBudgetPct - 100) / 100;
@@ -1889,11 +1893,12 @@ async function processTurn() {
     if (Math.random() < 0.125) c.carbonCredits += 1;
 
     // Recherche
-    const researchBudget = c.money * (c.budgetResearch / total) * 0.02 * lawEffects.researchMulti;
-    c.researchPoints = (c.researchPoints || 0) + researchBudget;
-    const totalAlloc = c.allocAgriculture + c.allocMilitary + c.allocIndustry + c.allocHealth + c.allocEspionage || 100;
+    // Recherche : base fixe + % du budget (pas basé sur l'argent pour éviter les 0)
+    const researchBudget = (10 + Math.round((c.budgetResearch / total) * 50)) * lawEffects.researchMulti;
+    c.researchPoints = Math.round(((c.researchPoints || 0) + researchBudget) * 10) / 10;
+    const totalAlloc = Math.max(c.allocAgriculture + c.allocMilitary + c.allocIndustry + c.allocHealth + c.allocEspionage, 1);
     ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
-      c[`rp${d}`] = (c[`rp${d}`] || 0) + researchBudget * (c[`alloc${d}`] / totalAlloc);
+      c['rp'+d] = Math.round(((c['rp'+d] || 0) + researchBudget * (c['alloc'+d] / totalAlloc)) * 10) / 10;
     });
 
     c.turnCount = (c.turnCount || 0) + 1;
@@ -1933,9 +1938,13 @@ async function processTurn() {
       where: { status: 'active', [Sequelize.Op.or]: [{ countryAId: c.id }, { countryBId: c.id }] }
     });
     const researchBonus = agreements.length * 0.1;
-    ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
-      c[`rp${d}`] = Math.round(((c[`rp${d}`] || 0) + researchGained * researchBonus) * 10) / 10;
-    });
+    if (researchBonus > 0) {
+      const researchBonusGained = researchBudget * researchBonus;
+      const totalAlloc2 = c.allocAgriculture + c.allocMilitary + c.allocIndustry + c.allocHealth + c.allocEspionage || 100;
+      ['Agriculture','Military','Industry','Health','Espionage'].forEach(d => {
+        c[`rp${d}`] = Math.round(((c[`rp${d}`] || 0) + researchBonusGained * (c[`alloc${d}`] / totalAlloc2)) * 10) / 10;
+      });
+    }
 
     // ── Score de saison ──
     c.seasonPoints = computeScore(c);
@@ -2010,7 +2019,7 @@ function computeProjections(c) {
   const industryIncome = Math.round(popM * 20000 * c.industry   * (1 + c.techIndustry    * 0.15) * (c.budgetIndustry    / total));
   const commerceIncome = c.isBlockaded ? 0 : Math.round(popM * 8000 * c.commerce * (c.budgetIndustry / total));
   const popTax         = Math.round(c.population * 0.5);
-  const militaryCost   = Math.round(c.infantry * 5 + c.tanks * 100 + c.aviation * 300 + c.navy * 200 + c.missiles * 500 + c.specialForces * 800);
+  const militaryCost   = Math.round(c.infantry * 2 + c.tanks * 20 + c.aviation * 50 + c.navy * 35 + c.missiles * 80 + c.specialForces * 100);
   const incomeTotal    = agriIncome + industryIncome + commerceIncome + popTax;
   const moneyDelta     = incomeTotal - militaryCost;
 
@@ -2050,8 +2059,19 @@ async function init() {
     if (!adminExists) {
       const hash = await bcrypt.hash('admin123', 10);
       const admin = await User.create({ username: 'admin', email: 'admin@anathas.com', password: hash, role: 'admin' });
-      await Country.create({ name: 'Administration', userId: admin.id, money: 0 });
+      await Country.create({ name: 'Administration', userId: admin.id, money: 500000000, plains: 16000, desert: 3000, urban: 1000 });
       console.log('Admin créé : admin / admin123 — CHANGEZ CE MOT DE PASSE !');
+    } else {
+      // Corriger les pays avec 0 argent au démarrage
+      const broken = await Country.findAll({ where: { money: 0 } });
+      for (const c of broken) {
+        c.money = 500000000;
+        if (!c.plains || c.plains < 100) c.plains = 16000;
+        if (!c.desert) c.desert = 3000;
+        if (!c.urban) c.urban = 1000;
+        await c.save();
+        console.log('Pays réparé (0 argent):', c.name);
+      }
     }
     const catCount = await ForumCategory.count();
     // Init season
