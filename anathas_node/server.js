@@ -749,22 +749,29 @@ app.post('/military/peace/:warId', requireLogin, async (req, res) => {
 
 // ─── RESEARCH ───
 app.get('/research', requireLogin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId, { include: Country });
-  const c = user.Country;
-  const unread = await getUnread(user.id);
-  const domains = ['agriculture','military','industry','health','espionage'];
-  const techInfo = domains.map(d => ({
-    domain: d,
-    level: c[`tech${d.charAt(0).toUpperCase()+d.slice(1)}`],
-    rp: Math.round(c[`rp${d.charAt(0).toUpperCase()+d.slice(1)}`] * 10) / 10,
-    cost: techCost(c[`tech${d.charAt(0).toUpperCase()+d.slice(1)}`]),
-    alloc: c[`alloc${d.charAt(0).toUpperCase()+d.slice(1)}`],
-    progress: Math.min(100, Math.round(c[`rp${d.charAt(0).toUpperCase()+d.slice(1)}`] / techCost(c[`tech${d.charAt(0).toUpperCase()+d.slice(1)}`]) * 100))
-  }));
-  // Points gagnés par tour
-  const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
-  const currentGain = 10 + Math.round((c.budgetResearch / total) * 50);
-  res.render('research', { user, country: c, techInfo, unread, currentGain });
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const c = user.Country;
+    const unread = await getUnread(user.id);
+    const total = Math.max((c.budgetAgriculture||0) + (c.budgetIndustry||0) + (c.budgetHealth||0) + (c.budgetMilitary||0) + (c.budgetResearch||0), 1);
+    const totalResearchPerTurn = 10 + Math.round(((c.budgetResearch||0) / total) * 50);
+    const domains = ['agriculture','military','industry','health','espionage'];
+    const techInfo = domains.map(d => {
+      const key = d.charAt(0).toUpperCase() + d.slice(1);
+      const level = c['tech'+key] || 0;
+      const rp = Math.round((c['rp'+key] || 0) * 10) / 10;
+      const cost = techCost(level);
+      const alloc = c['alloc'+key] || 20;
+      return {
+        domain: d, level, rp, cost, alloc,
+        progress: Math.min(100, cost > 0 ? Math.round(rp / cost * 100) : 0)
+      };
+    });
+    res.render('research', { user, country: c, techInfo, unread, totalResearchPerTurn });
+  } catch(err) {
+    console.error('Research error:', err);
+    res.redirect('/dashboard');
+  }
 });
 
 app.post('/research/allocate', requireLogin, async (req, res) => {
@@ -1719,25 +1726,29 @@ app.get('/admin/logs', requireAdmin, async (req, res) => {
 
 // ─── OBLIGATIONS D'ÉTAT ───
 app.get('/bonds', requireLogin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId, { include: Country });
-  const c = user.Country;
-  c.gdp = computeGDP(c);
-  const myBonds = await Bond.findAll({ where: { issuerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
-  const myInvestments = await Bond.findAll({ where: { buyerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
-  const openBonds = await Bond.findAll({ where: { status: 'open' }, order: [['createdAt','DESC']] });
-  // Add credit rating for each issuer
-  for (const b of openBonds) {
-    b.issuer = await Country.findByPk(b.issuerId);
-    if (b.issuer) { b.issuer.gdp = computeGDP(b.issuer); b.creditRating = computeCreditRating(b.issuer); }
-    if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const c = user.Country;
+    c.gdp = computeGDP(c);
+    const myBonds = await Bond.findAll({ where: { issuerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
+    const myInvestments = await Bond.findAll({ where: { buyerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
+    const openBonds = await Bond.findAll({ where: { status: 'open' }, order: [['createdAt','DESC']] });
+    for (const b of openBonds) {
+      b.issuer = await Country.findByPk(b.issuerId);
+      if (b.issuer) { b.issuer.gdp = computeGDP(b.issuer); b.creditRating = computeCreditRating(b.issuer); }
+      if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
+    }
+    for (const b of [...myBonds, ...myInvestments]) {
+      b.issuer = await Country.findByPk(b.issuerId);
+      if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
+    }
+    const creditRating = computeCreditRating(c);
+    const unread = await getUnread(user.id);
+    res.render('bonds', { user, country: c, myBonds, myInvestments, openBonds, creditRating, unread });
+  } catch(err) {
+    console.error('Bonds error:', err.message);
+    res.redirect('/dashboard');
   }
-  for (const b of [...myBonds, ...myInvestments]) {
-    b.issuer = await Country.findByPk(b.issuerId);
-    if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
-  }
-  const creditRating = computeCreditRating(c);
-  const unread = await getUnread(user.id);
-  res.render('bonds', { user, country: c, myBonds, myInvestments, openBonds, creditRating, unread });
 });
 
 app.post('/bonds/issue', requireLogin, async (req, res) => {
@@ -1792,7 +1803,8 @@ async function processTurn() {
   const countries = await Country.findAll({ include: [{ model: User, attributes: ['id'] }] });
   for (const c of countries) {
     if (!c.userId && c.User) c.userId = c.User.id;
-    const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
+    const totalBudgetPct = (c.budgetAgriculture||0) + (c.budgetIndustry||0) + (c.budgetHealth||0) + (c.budgetMilitary||0) + (c.budgetResearch||0);
+    const total = Math.max(totalBudgetPct, 1);
 
     // Appliquer les effets des lois
     const countryLaws = await Law.findAll({ where: { countryId: c.id } });
