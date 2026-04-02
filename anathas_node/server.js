@@ -89,6 +89,12 @@ const Country = sequelize.define('Country', {
   victories: { type: DataTypes.INTEGER, defaultValue: 0 },
   defeats: { type: DataTypes.INTEGER, defaultValue: 0 },
   seasonPoints: { type: DataTypes.FLOAT, defaultValue: 0 },
+  debt: { type: DataTypes.FLOAT, defaultValue: 0 },
+  isBankrupt: { type: DataTypes.BOOLEAN, defaultValue: false },
+  bankruptTurnsLeft: { type: DataTypes.INTEGER, defaultValue: 0 },
+  budgetOverride: { type: DataTypes.FLOAT, defaultValue: 100 }, // % du budget autorisé (60% si faillite)
+  domesticDebt: { type: DataTypes.FLOAT, defaultValue: 0 }, // dette intérieure (citoyens/entreprises)
+  crisisCount: { type: DataTypes.INTEGER, defaultValue: 0 }, // nombre de tours en crise
   investAgri: { type: DataTypes.FLOAT, defaultValue: 0 },
   investIndustry: { type: DataTypes.FLOAT, defaultValue: 0 },
   investCommerce: { type: DataTypes.FLOAT, defaultValue: 0 },
@@ -271,6 +277,17 @@ const AllianceJoinRequest = sequelize.define('AllianceJoinRequest', {
   status: { type: DataTypes.STRING(20), defaultValue: 'pending' } // pending, accepted, rejected
 });
 
+const Bond = sequelize.define('Bond', {
+  issuerId: { type: DataTypes.INTEGER, allowNull: false }, // pays émetteur
+  buyerId: { type: DataTypes.INTEGER, allowNull: true },   // pays acheteur (null = dispo)
+  amount: { type: DataTypes.FLOAT, allowNull: false },     // capital emprunté
+  interestRate: { type: DataTypes.FLOAT, defaultValue: 0.05 }, // taux intérêt/tour
+  durationTurns: { type: DataTypes.INTEGER, defaultValue: 10 }, // durée en tours
+  turnsRemaining: { type: DataTypes.INTEGER, defaultValue: 10 },
+  status: { type: DataTypes.STRING(20), defaultValue: 'open' }, // open, active, repaid, defaulted
+  totalInterestPaid: { type: DataTypes.FLOAT, defaultValue: 0 }
+});
+
 const Season = sequelize.define('Season', {
   number: { type: DataTypes.INTEGER, defaultValue: 1 },
   startDate: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
@@ -293,6 +310,12 @@ const HallOfFame = sequelize.define('HallOfFame', {
   victories: { type: DataTypes.INTEGER, defaultValue: 0 },
   defeats: { type: DataTypes.INTEGER, defaultValue: 0 },
   seasonPoints: { type: DataTypes.FLOAT, defaultValue: 0 },
+  debt: { type: DataTypes.FLOAT, defaultValue: 0 },
+  isBankrupt: { type: DataTypes.BOOLEAN, defaultValue: false },
+  bankruptTurnsLeft: { type: DataTypes.INTEGER, defaultValue: 0 },
+  budgetOverride: { type: DataTypes.FLOAT, defaultValue: 100 }, // % du budget autorisé (60% si faillite)
+  domesticDebt: { type: DataTypes.FLOAT, defaultValue: 0 }, // dette intérieure (citoyens/entreprises)
+  crisisCount: { type: DataTypes.INTEGER, defaultValue: 0 }, // nombre de tours en crise
   population: { type: DataTypes.INTEGER, defaultValue: 0 }
 });
 
@@ -333,6 +356,123 @@ function computeMilitaryPower(c) {
   return (c.infantry * 1 + c.tanks * 8 + c.aviation * 15 + c.navy * 10 + c.missiles * 20 + c.specialForces * 25) * techBonus;
 }
 
+function computeCreditRating(c) {
+  // Calcul de l'indice de crédit (0-100)
+  let score = 50; // base
+  
+  // Facteurs positifs
+  const debtRatio = c.gdp > 0 ? (c.debt || 0) / c.gdp : 1;
+  if (debtRatio < 0.1) score += 20;
+  else if (debtRatio < 0.3) score += 10;
+  else if (debtRatio < 0.5) score += 5;
+  else if (debtRatio > 1.0) score -= 20;
+  else if (debtRatio > 0.7) score -= 10;
+  
+  if (c.satisfaction >= 70) score += 15;
+  else if (c.satisfaction >= 50) score += 8;
+  else if (c.satisfaction < 30) score -= 15;
+  
+  if (c.employment >= 70) score += 10;
+  else if (c.employment < 30) score -= 10;
+  
+  if (c.isBankrupt) score -= 40;
+  
+  const techTotal = (c.techAgriculture||0)+(c.techMilitary||0)+(c.techIndustry||0)+(c.techHealth||0)+(c.techEspionage||0);
+  score += Math.min(techTotal * 2, 10);
+  
+  score = Math.max(0, Math.min(100, score));
+  
+  // Convertir en note
+  let rating, label, color, maxLoan;
+  if (score >= 85)      { rating = 'AAA'; label = 'Excellent';    color = '#00c853'; maxLoan = 5.0; }
+  else if (score >= 75) { rating = 'AA';  label = 'Très bon';     color = '#64dd17'; maxLoan = 4.0; }
+  else if (score >= 65) { rating = 'A';   label = 'Bon';          color = '#aeea00'; maxLoan = 3.0; }
+  else if (score >= 55) { rating = 'BBB'; label = 'Satisfaisant'; color = '#ffd600'; maxLoan = 2.0; }
+  else if (score >= 45) { rating = 'BB';  label = 'Fragile';      color = '#ff6d00'; maxLoan = 1.5; }
+  else if (score >= 35) { rating = 'B';   label = 'Risqué';       color = '#dd2c00'; maxLoan = 1.0; }
+  else if (score >= 20) { rating = 'CCC'; label = 'Très risqué';  color = '#b71c1c'; maxLoan = 0.5; }
+  else                  { rating = 'D';   label = 'En défaut';    color = '#424242'; maxLoan = 0.0; }
+  
+  // maxLoan = multiplicateur du PIB annuel que les citoyens/entreprises peuvent prêter
+  const maxAutoLoan = Math.round((c.gdp || 0) * maxLoan);
+  
+  return { score, rating, label, color, maxLoan, maxAutoLoan };
+}
+
+// ─── PRIX DU MARCHÉ (dynamiques) ───
+async function getMarketPrice(resourceType) {
+  // Prix basé sur les 10 dernières transactions acceptées
+  const recentTrades = await MarketOffer.findAll({
+    where: { status: 'accepted', giveType: resourceType },
+    order: [['updatedAt', 'DESC']],
+    limit: 10
+  });
+  
+  if (recentTrades.length === 0) {
+    // Pas de transactions : prix plancher selon le type
+    const floors = { carbonCredits: 50, researchPoints: 20, plains: 1000, money: 1 };
+    return floors[resourceType] || 100;
+  }
+  
+  // Prix = moyenne du ratio wantAmount/giveAmount des transactions
+  let totalPrice = 0;
+  let count = 0;
+  for (const t of recentTrades) {
+    if (t.giveAmount > 0 && t.wantType === 'money') {
+      totalPrice += t.wantAmount / t.giveAmount;
+      count++;
+    } else if (t.giveAmount > 0) {
+      // Transaction non-monétaire : estimer via les offres ouvertes
+      const relatedOffer = await MarketOffer.findOne({
+        where: { status: 'open', giveType: resourceType, wantType: 'money' },
+        order: [['createdAt', 'DESC']]
+      });
+      if (relatedOffer) {
+        totalPrice += relatedOffer.wantAmount / relatedOffer.giveAmount;
+        count++;
+      }
+    }
+  }
+  
+  if (count === 0) {
+    // Chercher dans les offres ouvertes
+    const openOffers = await MarketOffer.findAll({
+      where: { status: 'open', giveType: resourceType, wantType: 'money' },
+      limit: 5
+    });
+    if (openOffers.length > 0) {
+      const avgPrice = openOffers.reduce((s, o) => s + o.wantAmount / o.giveAmount, 0) / openOffers.length;
+      return Math.round(avgPrice);
+    }
+    // Aucune donnée : prix plancher
+    const floors = { carbonCredits: 50, researchPoints: 20, plains: 1000 };
+    return floors[resourceType] || 50;
+  }
+  
+  return Math.round(totalPrice / count);
+}
+
+async function getResearchPointPrice() {
+  // Prix des pts recherche = basé sur offres marché + demande globale
+  const basePrice = await getMarketPrice('researchPoints');
+  
+  // Bonus demande : si beaucoup de pays allouent en recherche → pts plus rares → plus chers
+  const countries = await Country.findAll({ attributes: ['budgetResearch'] });
+  const avgResearchBudget = countries.reduce((s, c) => s + (c.budgetResearch || 0), 0) / Math.max(countries.length, 1);
+  const demandMultiplier = 1 + (avgResearchBudget / 100); // +1-2x selon demande moyenne
+  
+  return Math.max(20, Math.round(basePrice * demandMultiplier));
+}
+
+async function getCCPrice() {
+  const basePrice = await getMarketPrice('carbonCredits');
+  // CC ont une valeur environnementale intrinsèque qui monte avec la pollution mondiale
+  const countries = await Country.findAll({ attributes: ['pollution'] });
+  const avgPollution = countries.reduce((s, c) => s + (c.pollution || 0), 0) / Math.max(countries.length, 1);
+  const pollutionBonus = Math.max(1, avgPollution / 20); // Plus la pollution est haute, plus les CC valent cher
+  return Math.max(50, Math.round(basePrice * pollutionBonus));
+}
+
 function computeGDP(c) {
   // PIB = revenus annualisés (2 tours/jour * 365 jours)
   const total = Math.max(c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch, 1);
@@ -370,10 +510,11 @@ app.use(express.json());
 app.use(methodOverride('_method'));
 app.use(session({
   secret: process.env.SECRET_KEY || 'anathas-secret-dev',
-  resave: false,
+  resave: true,
   saveUninitialized: false,
-  store: new SQLiteStore({ db: 'sessions.db', dir: './' }),
-  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 jours
+  rolling: true, // Renouvelle le cookie à chaque requête
+  store: new SQLiteStore({ db: 'sessions.db', dir: './', concurrentDB: true }),
+  cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true } // 30 jours
 }));
 app.use(flash());
 
@@ -440,7 +581,15 @@ app.post('/register', async (req, res) => {
   if (await Country.findOne({ where: { name: country_name } })) { req.flash('error', 'Nom de pays déjà pris.'); return res.redirect('/register'); }
   const hash = await bcrypt.hash(password, 10);
   const user = await User.create({ username, email, password: hash });
-  const country = await Country.create({ name: country_name, userId: user.id });
+  const country = await Country.create({ 
+    name: country_name, 
+    userId: user.id,
+    money: 500000000,
+    plains: 16000,
+    desert: 3000,
+    urban: 1000,
+    population: 100000
+  });
   country.militaryPower = computeMilitaryPower(country);
   country.score = computeScore(country);
   await country.save();
@@ -470,11 +619,16 @@ app.get('/dashboard', requireLogin, async (req, res) => {
 app.post('/budget', requireLogin, async (req, res) => {
   const user = await User.findByPk(req.session.userId, { include: Country });
   const c = user.Country;
-  const { ba, bi, bh, bm, br } = { ba: parseFloat(req.body.budget_agriculture)||0, bi: parseFloat(req.body.budget_industry)||0, bh: parseFloat(req.body.budget_health)||0, bm: parseFloat(req.body.budget_military)||0, br: parseFloat(req.body.budget_research)||0 };
-  if (Math.abs(ba+bi+bh+bm+br - 100) <= 0.5) {
-    c.budgetAgriculture = ba; c.budgetIndustry = bi; c.budgetHealth = bh; c.budgetMilitary = bm; c.budgetResearch = br;
-    await c.save();
-  }
+  const ba = Math.max(0, Math.min(200, parseFloat(req.body.budget_agriculture)||0));
+  const bi = Math.max(0, Math.min(200, parseFloat(req.body.budget_industry)||0));
+  const bh = Math.max(0, Math.min(200, parseFloat(req.body.budget_health)||0));
+  const bm = Math.max(0, Math.min(200, parseFloat(req.body.budget_military)||0));
+  const br = Math.max(0, Math.min(200, parseFloat(req.body.budget_research)||0));
+  const total = ba + bi + bh + bm + br;
+  // Pas de limite à 100% - l'excès est financé par la trésorerie
+  c.budgetAgriculture = ba; c.budgetIndustry = bi; c.budgetHealth = bh;
+  c.budgetMilitary = bm; c.budgetResearch = br;
+  await c.save();
   res.redirect('/dashboard');
 });
 
@@ -719,10 +873,14 @@ app.get('/market', requireLogin, async (req, res) => {
   const recentTrades = await MarketOffer.findAll({ where: { status: 'accepted' }, order: [['createdAt','DESC']], limit: 10 });
   const unread = await getUnread(user.id);
   const labels = { money:'Argent (§)', carbonCredits:'Crédits Carbone', researchPoints:'Points de Recherche', plains:'Territoire (km²)' };
-  // Add seller country to offers
   for (const o of offers) { o.sellerCountry = await Country.findByPk(o.sellerId); }
   for (const o of recentTrades) { o.sellerCountry = await Country.findByPk(o.sellerId); o.buyerCountry = o.buyerId ? await Country.findByPk(o.buyerId) : null; }
-  res.render('market', { user, country: c, offers, myOffers, recentTrades, labels, unread });
+  // Prix spots du marché
+  const spotPrices = {
+    carbonCredits: await getCCPrice(),
+    researchPoints: await getResearchPointPrice()
+  };
+  res.render('market', { user, country: c, offers, myOffers, recentTrades, labels, spotPrices, unread });
 });
 
 app.post('/market/create', requireLogin, async (req, res) => {
@@ -993,8 +1151,14 @@ app.get('/admin', requireAdmin, async (req, res) => {
 });
 
 app.post('/admin/run_turn', requireAdmin, async (req, res) => {
-  await processTurn();
-  res.json({ success: true, message: 'Tour traité !' });
+  try {
+    await processTurn();
+    await logAdmin(req.session.userId, 'run_turn', null, 'Tour manuel déclenché');
+    res.json({ success: true, message: 'Tour traité avec succès !' });
+  } catch(err) {
+    console.error('Erreur run_turn:', err);
+    res.json({ success: false, message: 'Erreur: ' + err.message });
+  }
 });
 
 app.post('/admin/set_role/:userId/:role', requireAdmin, async (req, res) => {
@@ -1144,13 +1308,27 @@ app.get('/api/messages/unread', requireLogin, async (req, res) => {
 
 // ─── FINANCES PUBLIQUES ───
 app.get('/finances', requireLogin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId, { include: Country });
-  const c = user.Country;
-  c.gdp = computeGDP(c);
-  await c.save();
-  const projections = computeProjections(c);
-  const unread = await getUnread(user.id);
-  res.render('finances', { user, country: c, projections, unread });
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const c = user.Country;
+    c.gdp = computeGDP(c);
+    await c.save();
+    const projections = computeProjections(c);
+    const activeBonds = await Bond.findAll({ where: { issuerId: c.id, status: 'active' } });
+    const interestPerTurn = Math.round(activeBonds.reduce((sum, b) => sum + b.amount * b.interestRate, 0));
+    const creditRating = computeCreditRating(c);
+    const totalBudgetPct = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch;
+    // Prix dynamiques du marché
+    const ccPrice = await getCCPrice();
+    const rpPrice = await getResearchPointPrice();
+    const ccValue = Math.round(c.carbonCredits * ccPrice);
+    const rpValue = Math.round(c.researchPoints * rpPrice);
+    const unread = await getUnread(user.id);
+    res.render('finances', { user, country: c, projections, interestPerTurn, creditRating, totalBudgetPct, ccPrice, rpPrice, ccValue, rpValue, unread });
+  } catch(err) {
+    console.error('Finances error:', err);
+    res.redirect('/dashboard');
+  }
 });
 
 // ─── STATS GLOBALES ───
@@ -1308,6 +1486,8 @@ app.get('/country/:countryId', async (req, res) => {
     const country = await Country.findByPk(req.params.countryId, { include: User });
     if (!country) return res.redirect('/ranking');
     country.allianceName = country.allianceId ? (await Alliance.findByPk(country.allianceId))?.name || '—' : '—';
+    country.gdp = computeGDP(country);
+    const creditRating = computeCreditRating(country);
     const wars = await War.findAll({
       where: { [Sequelize.Op.or]: [{ attackerId: country.id }, { defenderId: country.id }] },
       order: [['createdAt','DESC']], limit: 5
@@ -1318,7 +1498,7 @@ app.get('/country/:countryId', async (req, res) => {
     const wonders = await Wonder.findAll({ where: { countryId: country.id, isCompleted: true } });
     const publicEvents = await EventLog.findAll({ where: { countryId: country.id, isPublic: true }, order: [['createdAt','DESC']], limit: 10 });
     const unread = viewer ? await getUnread(viewer.id) : 0;
-    res.render('country_profile', { viewer, country, wars, wonders, publicEvents, unread, currentCountry: viewer?.Country || null, session: req.session });
+    res.render('country_profile', { viewer, country, wars, wonders, publicEvents, creditRating, unread, currentCountry: viewer?.Country || null, session: req.session });
   } catch(err) { console.error(err); res.redirect('/ranking'); }
 });
 
@@ -1524,18 +1704,94 @@ app.post('/admin/end_season', requireAdmin, async (req, res) => {
 
 // ─── LOGS ADMIN ───
 app.get('/admin/logs', requireAdmin, async (req, res) => {
-  const user = await User.findByPk(req.session.userId);
-  const logs = await AdminLog.findAll({ order: [['createdAt','DESC']], limit: 100 });
-  for (const l of logs) { l.admin = await User.findByPk(l.adminId); }
+  try {
+    const user = await User.findByPk(req.session.userId, { include: Country });
+    const logs = await AdminLog.findAll({ order: [['createdAt','DESC']], limit: 100 });
+    for (const l of logs) { l.admin = await User.findByPk(l.adminId); }
+    const unread = await getUnread(user.id);
+    res.render('admin_logs', { user, logs, unread, currentCountry: user.Country || null, session: req.session });
+  } catch(err) {
+    console.error('Admin logs error:', err);
+    res.redirect('/admin');
+  }
+});
+
+
+// ─── OBLIGATIONS D'ÉTAT ───
+app.get('/bonds', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  c.gdp = computeGDP(c);
+  const myBonds = await Bond.findAll({ where: { issuerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
+  const myInvestments = await Bond.findAll({ where: { buyerId: c.id }, order: [['createdAt','DESC']], limit: 20 });
+  const openBonds = await Bond.findAll({ where: { status: 'open' }, order: [['createdAt','DESC']] });
+  // Add credit rating for each issuer
+  for (const b of openBonds) {
+    b.issuer = await Country.findByPk(b.issuerId);
+    if (b.issuer) { b.issuer.gdp = computeGDP(b.issuer); b.creditRating = computeCreditRating(b.issuer); }
+    if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
+  }
+  for (const b of [...myBonds, ...myInvestments]) {
+    b.issuer = await Country.findByPk(b.issuerId);
+    if (b.buyerId) b.buyer = await Country.findByPk(b.buyerId);
+  }
+  const creditRating = computeCreditRating(c);
   const unread = await getUnread(user.id);
-  const currentCountry = await Country.findOne({ where: { userId: user.id } });
-  res.render('admin_logs', { user, logs, unread, currentCountry, session: req.session });
+  res.render('bonds', { user, country: c, myBonds, myInvestments, openBonds, creditRating, unread });
+});
+
+app.post('/bonds/issue', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const c = user.Country;
+  if (!rateLimit(user.id, 'issue_bond', 3)) return res.redirect('/bonds');
+  const amount = parseFloat(req.body.amount) || 0;
+  const rate = Math.min(Math.max(parseFloat(req.body.rate) || 5, 1), 30) / 100;
+  const duration = Math.min(Math.max(parseInt(req.body.duration) || 10, 3), 50);
+  if (amount < 100000) return res.redirect('/bonds');
+  // Max dette = 3x les revenus annuels
+  const projections = computeProjections(c);
+  const maxDebt = projections.income * 730 * 3;
+  if ((c.debt || 0) + amount > maxDebt) return res.redirect('/bonds');
+  await Bond.create({ issuerId: c.id, amount, interestRate: rate, durationTurns: duration, turnsRemaining: duration });
+  c.debt = (c.debt || 0) + amount;
+  await c.save();
+  await logEvent(c.id, `Obligation émise : ${amount.toLocaleString('fr-FR')} § à ${(rate*100).toFixed(1)}%/tour sur ${duration} tours`, 'economy');
+  res.redirect('/bonds');
+});
+
+app.post('/bonds/buy/:bondId', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const buyer = user.Country;
+  const bond = await Bond.findByPk(req.params.bondId);
+  if (!bond || bond.status !== 'open' || bond.issuerId === buyer.id) return res.redirect('/bonds');
+  if (buyer.money < bond.amount) return res.redirect('/bonds');
+  buyer.money -= bond.amount;
+  bond.buyerId = buyer.id;
+  bond.status = 'active';
+  const issuer = await Country.findByPk(bond.issuerId, { include: User });
+  issuer.money += bond.amount;
+  await buyer.save(); await issuer.save(); await bond.save();
+  await notify(issuer.userId, `✅ ${buyer.name} a acheté votre obligation de ${bond.amount.toLocaleString('fr-FR')} §`, 'info');
+  await notify(user.id, `💼 Vous avez acheté une obligation de ${issuer.name} : ${bond.amount.toLocaleString('fr-FR')} § à ${(bond.interestRate*100).toFixed(1)}%/tour`, 'info');
+  await logEvent(buyer.id, `Obligation achetée : ${bond.amount.toLocaleString('fr-FR')} § de ${issuer.name}`, 'economy');
+  res.redirect('/bonds');
+});
+
+app.post('/bonds/cancel/:bondId', requireLogin, async (req, res) => {
+  const user = await User.findByPk(req.session.userId, { include: Country });
+  const bond = await Bond.findByPk(req.params.bondId);
+  if (!bond || bond.issuerId !== user.Country.id || bond.status !== 'open') return res.redirect('/bonds');
+  bond.status = 'cancelled';
+  user.Country.debt = Math.max(0, (user.Country.debt || 0) - bond.amount);
+  await bond.save(); await user.Country.save();
+  res.redirect('/bonds');
 });
 
 // ─── TOUR ENGINE ───
 async function processTurn() {
-  const countries = await Country.findAll();
+  const countries = await Country.findAll({ include: [{ model: User, attributes: ['id'] }] });
   for (const c of countries) {
+    if (!c.userId && c.User) c.userId = c.User.id;
     const total = c.budgetAgriculture + c.budgetIndustry + c.budgetHealth + c.budgetMilitary + c.budgetResearch || 100;
 
     // Appliquer les effets des lois
@@ -1567,7 +1823,29 @@ async function processTurn() {
     const popTax = Math.round(c.population * 0.001);
     const militaryCost = Math.round(c.infantry * 0.5 + c.tanks * 5 + c.aviation * 10 + c.navy * 8 + c.missiles * 15 + c.specialForces * 20);
     const totalIncome = agriIncome + industryIncome + commerceIncome + popTax;
-    c.money = Math.max(0, Math.round(c.money + totalIncome - militaryCost));
+    // Calcul du delta réel
+    const rawDelta = totalIncome - militaryCost;
+    let newMoney = Math.round(c.money + rawDelta);
+
+    // Si budget > 100% : on tente de puiser dans la tréso pour financer l'excès
+    const budgetExcess = Math.max(0, totalBudgetPct - 100) / 100;
+    const excessCost = Math.round(totalIncome * budgetExcess);
+    if (excessCost > 0) {
+      if (newMoney >= excessCost) {
+        // On peut payer l'excès depuis la tréso
+        newMoney -= excessCost;
+      } else if (newMoney > 0) {
+        // Tréso insuffisante — on prend tout ce qu'on peut
+        newMoney = 0;
+        await logEvent(c.id, `⚠️ Trésorerie insuffisante pour financer le budget excédentaire (${totalBudgetPct}%). Dépenses réduites.`, 'economy');
+      } else {
+        // Tréso = 0 : austérité automatique
+        await logEvent(c.id, `🚨 Trésorerie épuisée ! Le budget excédentaire est ignoré. Réduisez vos dépenses.`, 'economy');
+        await notify(c.userId, `🚨 Votre trésorerie est épuisée ! Votre budget excédentaire (${totalBudgetPct}%) ne peut pas être financé. Réduisez vos dépenses ou émettez des obligations.`, 'info');
+      }
+    }
+
+    c.money = Math.max(0, newMoney);
 
     // Investissement dans les secteurs (le budget alloué fait monter les niveaux progressivement)
     // Chaque tour, une partie du budget investi dans agri/industrie/commerce améliore les niveaux
@@ -1735,6 +2013,9 @@ function computeProjections(c) {
   const pollDelta = Math.round(((c.industry * 0.3 + c.population * 0.000005) - (c.forests * 0.05 + c.techIndustry * 0.8)) * 100) / 100;
   const researchIncome = 10 + Math.round((c.budgetResearch / total) * 50);
 
+  // Calcul intérêts dette
+  const interestCost = 0; // sera calculé dynamiquement dans la vue
+  
   return {
     agriIncome, industryIncome, commerceIncome, popTax, militaryCost,
     moneyDelta, income: incomeTotal,
@@ -1742,7 +2023,9 @@ function computeProjections(c) {
     satisfDelta: Math.round((nextSatisf - c.satisfaction) * 10) / 10,
     pollDelta, researchIncome,
     nextFood: Math.round(nextFood), nextHealth: Math.round(nextHealth),
-    nextEmploy: Math.round(nextEmploy), nextSatisf: Math.round(nextSatisf)
+    nextEmploy: Math.round(nextEmploy), nextSatisf: Math.round(nextSatisf),
+    isBankrupt: c.isBankrupt || false,
+    bankruptTurnsLeft: c.bankruptTurnsLeft || 0
   };
 }
 

@@ -1,66 +1,120 @@
 <%- include('partials/header', {title:'Finances publiques', session, unread, currentCountry}) %>
 <h1 class="page-title">💼 Finances Publiques de <%= country.name %></h1>
 
+<% if(country.isBankrupt) { %>
+<div class="alert alert-error" style="margin-bottom:14px">💥 <strong>FAILLITE</strong> — Budget limité à 60% pendant encore <%= country.bankruptTurnsLeft %> tours.</div>
+<% } %>
+
 <div class="two-col">
 <div>
+
+<!-- RECETTES -->
 <div class="section-card"><div class="section-header"><span class="section-title">📈 Recettes de l'État</span></div><div class="section-body">
 <div class="stat-row"><span class="stat-label">🌾 Agriculture</span><span class="stat-value good">+<%= projections.agriIncome.toLocaleString('fr-FR') %> §/tour</span></div>
 <div class="stat-row"><span class="stat-label">🏭 Industrie</span><span class="stat-value good">+<%= projections.industryIncome.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label">🛒 Commerce</span><span class="stat-value <%= country.isBlockaded?'bad':'good' %>"><%= country.isBlockaded?'0 (bloqué)':'+'+projections.commerceIncome.toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row"><span class="stat-label">🛒 Commerce</span><span class="stat-value <%= country.isBlockaded?'bad':'good' %>">+<%= country.isBlockaded ? '0' : projections.commerceIncome.toLocaleString('fr-FR') %> §/tour</span></div>
 <div class="stat-row"><span class="stat-label">💰 Taxe population</span><span class="stat-value good">+<%= projections.popTax.toLocaleString('fr-FR') %> §/tour</span></div>
 <hr style="margin:8px 0;border:none;border-top:2px solid var(--border)">
 <div class="stat-row"><span class="stat-label" style="font-weight:bold">Total recettes</span><span class="stat-value teal" style="font-size:15px;font-weight:bold">+<%= projections.income.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label" style="color:var(--text-dim)">Annualisé (PIB)</span><span class="stat-value teal"><%= country.gdp ? (country.gdp/1e9).toFixed(3) : '—' %> G$/an</span></div>
+<div class="stat-row"><span class="stat-label" style="color:var(--text-dim)">PIB annualisé</span><span class="stat-value teal"><%= country.gdp ? (country.gdp/1e9).toFixed(3)+' G$/an' : '—' %></span></div>
 </div></div>
 
-<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📉 Dépenses de l'État</span></div><div class="section-body">
-<% const total = country.budgetAgriculture+country.budgetIndustry+country.budgetHealth+country.budgetMilitary+country.budgetResearch||100;
-   const agriSpend = Math.round(projections.income * country.budgetAgriculture / total);
-   const indSpend = Math.round(projections.income * country.budgetIndustry / total);
-   const healthSpend = Math.round(projections.income * country.budgetHealth / total);
-   const milSpend = projections.militaryCost;
-   const resSpend = Math.round(projections.income * country.budgetResearch / total);
-%>
-<div class="stat-row"><span class="stat-label">🌾 Investissement Agriculture</span><span class="stat-value bad">-<%= agriSpend.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label">🏭 Investissement Industrie</span><span class="stat-value bad">-<%= indSpend.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label">🏥 Santé publique</span><span class="stat-value bad">-<%= healthSpend.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label">⚔ Entretien militaire</span><span class="stat-value bad">-<%= milSpend.toLocaleString('fr-FR') %> §/tour</span></div>
-<div class="stat-row"><span class="stat-label">🔬 Recherche &amp; Développement</span><span class="stat-value bad">-<%= resSpend.toLocaleString('fr-FR') %> §/tour</span></div>
+<!-- DÉPENSES RÉELLES -->
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📉 Dépenses réelles</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Seul le coût militaire sort réellement de votre trésorerie. Les budgets sectoriels sont <strong>réinvestis dans votre économie</strong> (ils génèrent les recettes).</p>
+<div class="stat-row"><span class="stat-label">⚔ Entretien militaire</span><span class="stat-value bad">-<%= projections.militaryCost.toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row"><span class="stat-label">💼 Intérêts obligations</span><span class="stat-value bad">-<%= interestPerTurn.toLocaleString('fr-FR') %> §/tour</span></div>
 <hr style="margin:8px 0;border:none;border-top:2px solid var(--border)">
-<div class="stat-row"><span class="stat-label" style="font-weight:bold">Total dépenses</span><span class="stat-value bad" style="font-size:15px;font-weight:bold">-<%= (agriSpend+indSpend+healthSpend+milSpend+resSpend).toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row"><span class="stat-label" style="font-weight:bold">Total dépenses</span><span class="stat-value bad" style="font-size:15px;font-weight:bold">-<%= (projections.militaryCost + interestPerTurn).toLocaleString('fr-FR') %> §/tour</span></div>
 </div></div>
-</div>
 
+</div>
 <div>
+
+<!-- BILAN -->
 <div class="section-card"><div class="section-header"><span class="section-title">⚖ Bilan budgétaire</span></div><div class="section-body">
 <div class="stat-row"><span class="stat-label">Recettes</span><span class="stat-value good">+<%= projections.income.toLocaleString('fr-FR') %> §</span></div>
-<div class="stat-row"><span class="stat-label">Dépenses</span><span class="stat-value bad">-<%= projections.militaryCost.toLocaleString('fr-FR') %> § (militaire)</span></div>
+<div class="stat-row"><span class="stat-label">Dépenses</span><span class="stat-value bad">-<%= (projections.militaryCost + interestPerTurn).toLocaleString('fr-FR') %> §</span></div>
 <div class="stat-row" style="border-top:2px solid var(--border);padding-top:6px;margin-top:4px">
 <span class="stat-label" style="font-weight:bold">Solde par tour</span>
 <span class="stat-value <%= projections.moneyDelta>=0?'good':'bad' %>" style="font-size:18px;font-weight:bold">
 <%= projections.moneyDelta>=0?'+':'' %><%= projections.moneyDelta.toLocaleString('fr-FR') %> §
 </span></div>
 <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
-<div class="stat-row"><span class="stat-label">Trésorerie actuelle</span><span class="stat-value teal"><%= country.money.toLocaleString('fr-FR') %> §</span></div>
-<div class="stat-row"><span class="stat-label">Soit en G$</span><span class="stat-value teal"><%= (country.money/1e9).toFixed(3) %> G$</span></div>
+<div class="stat-row"><span class="stat-label">Trésorerie</span><span class="stat-value teal" style="font-size:15px"><%= country.money.toLocaleString('fr-FR') %> §</span></div>
+<div class="stat-row"><span class="stat-label">Dette totale</span><span class="stat-value bad"><%= (country.debt||0).toLocaleString('fr-FR') %> §</span></div>
 <% if(projections.moneyDelta < 0) { %>
-<div class="alert alert-warn" style="margin-top:10px">⚠️ Votre bilan est négatif ! Réduisez vos dépenses militaires ou augmentez vos revenus.</div>
+<div class="alert alert-warn" style="margin-top:10px">⚠️ Bilan négatif ! Réduisez l'armée ou émettez des obligations.</div>
 <% } else { %>
-<div class="alert alert-success" style="margin-top:10px">✅ Votre budget est excédentaire. Vos réserves augmentent.</div>
+<div class="alert alert-success" style="margin-top:10px">✅ Budget excédentaire. Vos réserves augmentent.</div>
 <% } %>
+</div></div>
+
+<!-- INDICATEURS -->
+<div class="section-card" style="margin-top:14px;border-left:4px solid <%= creditRating.color %>"><div class="section-header"><span class="section-title">📊 Indice de crédit : <span style="color:<%= creditRating.color %>;font-size:18px"><%= creditRating.rating %></span> — <%= creditRating.label %></span></div><div class="section-body">
+<div class="stat-row"><span class="stat-label">Score</span><span class="stat-value" style="color:<%= creditRating.color %>"><%= creditRating.score %>/100</span></div>
+<div class="stat-row"><span class="stat-label">Capacité emprunt citoyens</span><span class="stat-value teal"><%= creditRating.maxAutoLoan.toLocaleString('fr-FR') %> §</span></div>
+<div class="stat-row"><span class="stat-label">Budget alloué</span><span class="stat-value <%= totalBudgetPct > 100 ? 'bad' : totalBudgetPct < 100 ? 'gold' : 'good' %>"><%= totalBudgetPct %>% <% if(totalBudgetPct > 100) { %>(déficit de <%= totalBudgetPct-100 %>%)<% } else if(totalBudgetPct < 100) { %>(épargne de <%= 100-totalBudgetPct %>%)<% } %></span></div>
+<a href="/bonds" class="btn btn-primary btn-sm" style="margin-top:8px">💼 Gérer les obligations →</a>
 </div></div>
 
 <div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">📊 Indicateurs clés</span></div><div class="section-body">
 <div class="stat-row"><span class="stat-label">PIB annuel</span><span class="stat-value teal"><%= country.gdp ? (country.gdp/1e9).toFixed(3)+' G$' : '—' %></span></div>
 <div class="stat-row"><span class="stat-label">PIB par habitant</span><span class="stat-value"><%= country.gdp ? Math.round(country.gdp/country.population).toLocaleString('fr-FR')+' §' : '—' %></span></div>
-<div class="stat-row"><span class="stat-label">Charge militaire</span><span class="stat-value <%= projections.militaryCost/projections.income>0.3?'bad':'good' %>"><%= Math.round(projections.militaryCost/Math.max(projections.income,1)*100) %>% des recettes</span></div>
-<div class="stat-row"><span class="stat-label">Taux d'emploi</span><span class="stat-value <%= country.employment>=60?'good':country.employment>=30?'gold':'bad' %>"><%= country.employment.toFixed(1) %>%</span></div>
+<div class="stat-row"><span class="stat-label">Charge militaire</span><span class="stat-value <%= projections.militaryCost/Math.max(projections.income,1)>0.3?'bad':'good' %>"><%= Math.round(projections.militaryCost/Math.max(projections.income,1)*100) %>% des recettes</span></div>
+<div class="stat-row"><span class="stat-label">Ratio dette/PIB</span><span class="stat-value <%= (country.debt||0)/Math.max(country.gdp||1,1)>0.5?'bad':'good' %>"><%= country.gdp ? Math.round((country.debt||0)/country.gdp*100)+'%' : '—' %></span></div>
+<div class="stat-row"><span class="stat-label">Taux emploi</span><span class="stat-value <%= country.employment>=60?'good':country.employment>=30?'gold':'bad' %>"><%= country.employment.toFixed(1) %>%</span></div>
 <div class="stat-row"><span class="stat-label">Satisfaction</span><span class="stat-value <%= country.satisfaction>=60?'good':country.satisfaction>=40?'gold':'bad' %>"><%= country.satisfaction.toFixed(1) %>%</span></div>
 </div></div>
 
-<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">⚖ Lois fiscales actives</span></div><div class="section-body">
-<p style="font-size:13px;color:var(--text-dim)">Les lois influencent directement vos recettes et dépenses.</p>
-<a href="/laws" class="btn btn-primary btn-sm" style="margin-top:8px">Modifier les lois →</a>
+<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+<a href="/bonds" class="btn btn-primary btn-sm">💼 Gérer les obligations</a>
+<a href="/laws" class="btn btn-secondary btn-sm">⚖ Modifier les lois</a>
+</div></div></div>
+
+<!-- ACTIFS LIQUIDABLES -->
+<div class="section-card" style="margin-top:14px"><div class="section-header"><span class="section-title">🏦 Actifs disponibles en cas de déficit</span></div><div class="section-body">
+<p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">En cas de déficit, vos actifs sont liquidés automatiquement dans cet ordre pour combler le manque.</p>
+<div class="three-col">
+<div>
+<div style="font-size:12px;font-weight:bold;color:var(--text-dim);margin-bottom:6px">1er — Crédits Carbone</div>
+<div class="stat-row"><span class="stat-label">Quantité</span><span class="stat-value"><%= country.carbonCredits %> CC</span></div>
+<div class="stat-row">
+  <span class="stat-label">Prix marché actuel</span>
+  <span class="stat-value gold"><%= ccPrice.toLocaleString('fr-FR') %> §/CC</span>
+</div>
+<div class="stat-row"><span class="stat-label">Valeur totale</span><span class="stat-value teal"><%= ccValue.toLocaleString('fr-FR') %> §</span></div>
+<small style="font-size:11px;color:var(--text-dim)">Prix basé sur les dernières transactions + pollution mondiale</small>
+</div>
+<div>
+<div style="font-size:12px;font-weight:bold;color:var(--text-dim);margin-bottom:6px">2ème — Points de Recherche</div>
+<div class="stat-row"><span class="stat-label">Quantité</span><span class="stat-value"><%= Math.round(country.researchPoints) %> pts</span></div>
+<div class="stat-row">
+  <span class="stat-label">Prix marché actuel</span>
+  <span class="stat-value gold"><%= rpPrice.toLocaleString('fr-FR') %> §/pt</span>
+</div>
+<div class="stat-row"><span class="stat-label">Valeur totale</span><span class="stat-value teal"><%= rpValue.toLocaleString('fr-FR') %> §</span></div>
+<small style="font-size:11px;color:var(--text-dim)">Prix basé sur les offres marché + demande mondiale en recherche</small>
+</div>
+<div>
+<div style="font-size:12px;font-weight:bold;color:var(--text-dim);margin-bottom:6px">3ème — Armée (dissolutions)</div>
+<div class="stat-row"><span class="stat-label">Économie si dissolution totale</span><span class="stat-value good">+<%= projections.militaryCost.toLocaleString('fr-FR') %> §/tour</span></div>
+<div class="stat-row"><span class="stat-label">Unités dissoutes en premier</span><span class="stat-value">Forces spéciales, Missiles...</span></div>
+<small style="font-size:11px;color:var(--text-dim)">Les unités les plus chères sont dissoutes en priorité</small>
+</div>
+</div>
+<div style="margin-top:10px;padding:10px;background:var(--bg-section);border-radius:4px;font-size:12px">
+<strong>Valeur totale d'urgence :</strong>
+<span class="teal" style="font-size:14px;font-weight:bold;margin-left:8px"><%= (ccValue + rpValue).toLocaleString('fr-FR') %> §</span>
+<span style="color:var(--text-dim);margin-left:6px">(CC + Points recherche)</span>
+</div>
+<% if(country.crisisCount > 0) { %>
+<div class="alert alert-error" style="margin-top:10px">
+⚠️ <strong>Crise en cours !</strong> Votre pays est en déficit depuis <%= country.crisisCount %> tour(s) consécutif(s).
+<% if(country.crisisCount >= 3) { %> Crise grave — niveaux économiques impactés !<% } %>
+</div>
+<% } %>
+
 </div></div>
 </div>
 </div>
