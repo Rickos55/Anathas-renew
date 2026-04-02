@@ -51,13 +51,14 @@
 <thead><tr style="color:var(--text-dim)"><th style="text-align:left;padding:4px 0">Secteur</th><th style="text-align:center">%</th><th style="text-align:right">Dépensé/tour</th><th style="text-align:right;padding-left:8px">Impact</th></tr></thead>
 <tbody>
 <% const _t = Math.max(country.budgetAgriculture+country.budgetIndustry+country.budgetHealth+country.budgetMilitary+country.budgetResearch,1); %>
-<% [
-  ['agriculture','🌾 Agriculture','budgetAgriculture','Monte niveaux agri + nourriture'],
-  ['industry','🏭 Industrie','budgetIndustry','Monte niveaux industrie + emplois'],
-  ['health','🏥 Santé','budgetHealth','Améliore la santé publique'],
-  ['military','⚔ Militaire','budgetMilitary','Entretien de l'armée'],
-  ['research','🔬 Recherche','budgetResearch','Points de recherche technologique']
-].forEach(([k,l,bk,impact]) => {
+<% const budgetSectors = [
+  {k:'agriculture',l:'🌾 Agriculture',bk:'budgetAgriculture',impact:'Monte niveaux agri + nourriture'},
+  {k:'industry',l:'🏭 Industrie',bk:'budgetIndustry',impact:'Monte niveaux industrie + emplois'},
+  {k:'health',l:'🏥 Sante',bk:'budgetHealth',impact:'Ameliore la sante publique'},
+  {k:'military',l:'⚔ Militaire',bk:'budgetMilitary',impact:'Entretien de armee'},
+  {k:'research',l:'🔬 Recherche',bk:'budgetResearch',impact:'Points de recherche'}
+];
+budgetSectors.forEach(({k,l,bk,impact}) => {
   const pct = Math.round(country[bk]);
   const spend = Math.round(projections.income * pct / _t);
 %>
@@ -119,7 +120,7 @@
 <div class="stat-row"><span class="stat-label">Points accumulés</span><span class="stat-value teal"><%= Math.round(country.researchPoints) %> pts</span></div>
 <div class="stat-row"><span class="stat-label">Gain par tour</span><span class="stat-value good">+<%= projections.researchIncome %> pts (10 base + budget)</span></div>
 <hr style="margin:8px 0;border:none;border-top:1px solid var(--border)">
-<% [['Agriculture','techAgriculture','rpAgriculture'],['Militaire','techMilitary','rpMilitary'],['Industrie','techIndustry','rpIndustry'],['Médecine','techHealth','rpHealth'],['Espionnage','techEspionage','rpEspionage']].forEach(([l,tk,rk]) => { %>
+<% [['Agriculture','techAgriculture','rpAgriculture'],['Militaire','techMilitary','rpMilitary'],['Industrie','techIndustry','rpIndustry'],['Medecine','techHealth','rpHealth'],['Espionnage','techEspionage','rpEspionage']].forEach(([l,tk,rk]) => { %>
 <div class="stat-row">
   <span class="stat-label"><%= l %></span>
   <span class="stat-value">Niv. <%= country[tk] %> <span style="font-size:11px;color:var(--text-dim)">(<%= Math.round(country[rk]||0) %>/<%= 50*(country[tk]+1) %> pts)</span></span>

@@ -5,7 +5,7 @@
 </div><% } %>
 <div class="two-col">
 <div class="section-card"><div class="section-header"><span class="section-title">💪 Puissance : <%= Math.round(country.militaryPower) %></span></div><div class="section-body">
-<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Forces spéciales']].forEach(([k,l]) => { %>
+<% [['infantry','Infanterie'],['tanks','Blindes'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Forces spéciales']].forEach(([k,l]) => { %>
 <div class="stat-row"><span class="stat-label"><%= l %></span><span class="stat-value"><%= country[k] %></span></div>
 <% }) %>
 </div></div>
@@ -28,7 +28,7 @@
 <% if(war.attackerId === country.id) { %>
 <form method="POST" action="/military/send">
 <div class="units-send-grid">
-<% [['infantry','Infanterie'],['tanks','Blindés'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Sp. spéciales']].forEach(([k,l]) => { %>
+<% [['infantry','Infanterie'],['tanks','Blindes'],['aviation','Aviation'],['navy','Marine'],['missiles','Missiles'],['specialForces','Sp. spéciales']].forEach(([k,l]) => { %>
 <div class="unit-send-item"><label><%= l %> (<%= country[k] %> dispo.)</label><input type="number" name="<%= k %>" min="0" max="<%= country[k] %>" value="0"></div>
 <% }) %>
 </div>
